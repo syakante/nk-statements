@@ -2,48 +2,73 @@ from collections import Counter
 from unicodedata import normalize
 import re
 
-from konlpy.corpus import kolaw
-from konlpy.tag import Hannanum
-from konlpy.utils import concordance, pprint
-from matplotlib import pyplot
-from mecab import MeCab
-
-def draw_zipf(count_list, filename, color='blue', marker='o'):
-    sorted_list = sorted(count_list, reverse=True)
-    pyplot.plot(sorted_list, color=color, marker=marker)
-    pyplot.xscale('log')
-    pyplot.yscale('log')
-    pyplot.savefig(filename)
+from konlpy.tag import Okt
 
 with open('stopwords-ko.txt', mode='r', encoding='utf-8') as f:
-    stopwords = f.read().split("\n")
+    stopwords = set(f.read().split())
 
 with open('punct.txt', mode='r', encoding='utf-8') as f:
     punct = f.read().replace('\n', '')
 
 #watch out for encoding problems.......
-with open('example shield article.txt', mode='r', encoding = 'utf-8') as f:
+with open('../../example shield article.txt', mode='r', encoding = 'utf-8') as f:
     doc = f.read()
 doc = normalize("NFKC", doc)
 #tbl = str.maketrans('', '', punct)
 tbl = str.maketrans(punct, ' '*len(punct))
 doc = doc.translate(tbl)
-h = Hannanum()
-#m = Mecab(dicpath=r"C:/mecab/mecab-ko-dic")
-m = MeCab()
-h_morphs = h.morphs(doc)
-h_morphs2 = [word for word in h_morphs if word not in stopwords]
-m_morphs = m.morphs(doc)
-m_morphs2 = [word for word in m_morphs if word not in stopwords]
+o = Okt()
+o_morphs = o.morphs(doc)
+o_morphs2 = [word for word in o_morphs if word not in stopwords]
+del(o_morphs)
 #interesting where "은" could be a stopword or mean silver or sth but idk how to identify that. POS???
-#--> to also 
+#or just manually add some missed stopwords after a few trials
 
-#pos = Hannanum().pos(doc)
-#cnt = Counter(pos)
+#basically just need to watch out for "핵 에는 핵" (from "핵에는 핵으로")
+#because if we do the following V without accounting for this edge case we'll get some haek-somethingunintended token
+#therefore if we find haek and the previous token(s) (if possible) compose "핵 에는", then combine that whole token into one
+#since we're processing it left to right, it's more like if we encounter haek and the last haek token we just merged was "핵 에는"
+#otherwise if find standalone haek token, attach it to the next token
+#and all other tokens are just the morphs from Okt.
+#anyway once we finish tokenizing you can do other more interesting things (embeddings??????!!!!!)
 
-# print('nchars  :', len(doc))
-# print('ntokens :', len(doc.split()))
-# print('nmorphs :', len(set(pos)))
-# print('\nTop 5 frequent morphemes:'); pprint(cnt.most_common(5))
-#print('\nLocations of "국방" in the document:')
-#concordance(u'국방', doc, show=True)
+clean_tokens = []
+
+i=0
+while i < len(o_morphs2):
+    token = o_morphs2[i]
+    if len(token) < 0:
+        #idt this would happen
+        print("h")
+        i += 1
+        continue
+    if(o_morphs2[i] == "핵"):
+        # if(i < len(o_morphs2)-1):
+        #     print("next token:", o_morphs2[i+1])
+        # else:
+        #     print("(no next token)")
+        # if(i > 0):
+        #     print("preceding token:", o_morphs2[i-1])
+        # else:
+        #     print("(no previous token)")
+        #^ though this won't happen because we attach to the following token anyway
+        if(i > 0 and clean_tokens[-1] == "핵에는"):
+            print("here")
+            clean_tokens[-1] = "핵에는 핵으로"
+            i += 1
+            continue
+        if(i < len(o_morphs2)-1):
+            token = o_morphs2[i] + o_morphs2[i+1]
+            i += 1
+        else:
+            print("somehow found haek by itself at the end of the document.")
+            print(clean_tokens[-1])
+    if(o_morphs2[i] == "론" and i < len(o_morphs2)-1 and o_morphs2[i+1][0] == "설"):
+        print("ok")
+        token = "론설"
+        o_morphs2[i+1] = o_morphs2[i+1][1:]
+        i += 1
+    clean_tokens.append(token)
+    i += 1
+
+clean_tokens = [word for word in clean_tokens if word not in stopwords]
