@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 from konlpy.tag import Okt
 # from konlpy.utils import concordance, pprint
+import multiprocessing as mp
 
 with open('stopwords-ko.txt', mode='r', encoding='utf-8') as f:
     stopwords = set(f.read().split())
@@ -12,7 +13,7 @@ with open('stopwords-ko.txt', mode='r', encoding='utf-8') as f:
 with open('punct.txt', mode='r', encoding='utf-8') as f:
     punct = f.read().replace('\n', '')
 
-def csv_to_df(filename='../checkset.csv', skip_header=True):
+def csv_to_df(filename='../../checkset-fixed.csv', skip_header=True):
 	print("ok1")
 	#df = []
 	# with open(filename, encoding = 'utf-8') as csvfile:
@@ -26,7 +27,7 @@ def csv_to_df(filename='../checkset.csv', skip_header=True):
 		    	#though we're really only interested in normalizing the text columns... whatever
 	#df = np.array(df) #aiiieeeeeeeeeee
 	#0: id | 1: headline | 2: link | 3: text | 4: date | 5: year | 6: category
-	df = pd.read_csv(filename)
+	df = pd.read_csv(filename, dtype='string')
 	return df
 	sw_df = []
 	sh_df = []
@@ -105,5 +106,11 @@ def my_tokenizer(doc:str): #->List[str]
 	clean_tokens = [word for word in clean_tokens if word not in stopwords]
 	return clean_tokens
 
-mydf = np.array(csv_to_df())
-mydf[, 2] = np.apply_along_axis(my_tokenizer, )
+if __name__ == "__main__":
+
+	mydf = np.array(csv_to_df())
+	numProcesses = mp.cpu_count() #4
+	pool = mp.Pool(processes = numProcesses)
+	test = pool.map(my_tokenizer, mydf[:, 2])
+	pool.close()
+	pool.join()
