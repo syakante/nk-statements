@@ -3,9 +3,14 @@ from unicodedata import normalize
 import csv
 import numpy as np
 import pandas as pd
-from konlpy.tag import Okt
-# from konlpy.utils import concordance, pprint
+#from konlpy.tag import Okt
+from kiwipiepy import Kiwi
+from kiwipiepy.utils import Stopwords
 import multiprocessing as mp
+
+#o = Okt()
+k = Kiwi()
+k_sw = Stopwords()
 
 with open('stopwords-ko.txt', mode='r', encoding='utf-8') as f:
     stopwords = set(f.read().split())
@@ -15,7 +20,7 @@ with open('punct.txt', mode='r', encoding='utf-8') as f:
 
 def csv_to_df(filename='../../checkset-fixed.csv', skip_header=True):
 	print("ok1")
-	#df = []
+	df = []
 	# with open(filename, encoding = 'utf-8') as csvfile:
 	#     csvreader = csv.reader(csvfile, delimiter=",")
 	#     if skip_header:
@@ -27,7 +32,12 @@ def csv_to_df(filename='../../checkset-fixed.csv', skip_header=True):
 		    	#though we're really only interested in normalizing the text columns... whatever
 	#df = np.array(df) #aiiieeeeeeeeeee
 	#0: id | 1: headline | 2: link | 3: text | 4: date | 5: year | 6: category
-	df = pd.read_csv(filename, dtype='string')
+	#df = pd.read_csv(filename, dtype='string')
+	#idk why pandas is reading two rows as NA when they're right there. wtf.
+	with open(filename, encoding='utf-8') as csvfile:
+		myReader = csv.reader(csvfile)
+		df = list(myReader)
+
 	return df
 	sw_df = []
 	sh_df = []
@@ -44,11 +54,59 @@ def csv_to_df(filename='../../checkset-fixed.csv', skip_header=True):
 			my_pointer[which_cat].append([df[i][x] for x in [0, 3, 6]]) #potentially datetime is of interest but not rn
 	return np.array(df)
 
-def my_tokenizer(doc:str): #->List[str]
+def kiwi_tokenizer(doc:str): #->List[str]
 	doc = normalize("NFKC", doc)
 	tbl = str.maketrans(punct, ' '*len(punct))
 	doc = doc.translate(tbl)
-	o = Okt()
+	kiwi_tokens = k.tokenize(doc, stopwords=k_sw) #--> List of Token objects. We're interested in .form attribute
+	kiwi_words = [t.form for t in kiwi_tokens]
+	clean_tokens = []
+	i=0
+	while i < len(kiwi_words):
+	    token = kiwi_words[i]
+	    if len(token) < 0:
+	        #idt this would happen
+	        print("h")
+	        i += 1
+	        continue
+	    if(kiwi_words[i] == "핵"):
+	        # if(i < len(o_morphs2)-1):
+	        #     print("next token:", o_morphs2[i+1])
+	        # else:
+	        #     print("(no next token)")
+	        # if(i > 0):
+	        #     print("preceding token:", o_morphs2[i-1])
+	        # else:
+	        #     print("(no previous token)")
+	        #^ though this won't happen because we attach to the following token anyway
+	        if(i > 0 and clean_tokens[-1] == "핵에는"):
+	            print("here")
+	            clean_tokens[-1] = "핵에는 핵으로"
+	            i += 1
+	            continue
+	        if(i < len(kiwi_words)-1):
+	            token = kiwi_words[i] + kiwi_words[i+1]
+	            i += 1
+	        else:
+	            print("somehow found haek by itself at the end of the document.")
+	            print(clean_tokens[-1])
+	    if(kiwi_words[i] == "론" and i < len(kiwi_words)-1 and kiwi_words[i+1][0] == "설"):
+	        print("ok")
+	        token = "론설"
+	        kiwi_words[i+1] = kiwi_words[i+1][1:]
+	        i += 1
+	    clean_tokens.append(token)
+	    i += 1
+
+	#clean_tokens = [word for word in clean_tokens if word not in stopwords]
+	return clean_tokens
+
+
+def my_tokenizer(doc:str): #->List[str]
+	#print(type(doc))
+	doc = normalize("NFKC", doc)
+	tbl = str.maketrans(punct, ' '*len(punct))
+	doc = doc.translate(tbl)
 	o_morphs = o.morphs(doc)
 	o_morphs2 = [word for word in o_morphs if word not in stopwords]
 	del(o_morphs)
@@ -111,6 +169,12 @@ if __name__ == "__main__":
 	mydf = np.array(csv_to_df())
 	numProcesses = mp.cpu_count() #4
 	pool = mp.Pool(processes = numProcesses)
-	test = pool.map(my_tokenizer, mydf[:, 2])
+	test = pool.map(kiwi_tokenizer, mydf[:, 2])
 	pool.close()
 	pool.join()
+
+	joined = [' '.join(i) for i in test]
+	mydf[:, 2] = joined
+	with open('tokenoutkiwi.csv', 'w', encoding='utf-8') as csvfile:
+		mywriter = csv.writer(csvfile)
+		mywriter.writerows(mydf)
