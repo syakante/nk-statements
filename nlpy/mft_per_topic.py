@@ -1,8 +1,9 @@
 from collections import Counter
 from unicodedata import normalize
 import csv
-import numpy as np
+#import numpy as np
 import pandas as pd
+import itertools
 #from konlpy.tag import Okt
 from kiwipiepy import Kiwi
 from kiwipiepy.utils import Stopwords
@@ -18,8 +19,7 @@ with open('stopwords-ko.txt', mode='r', encoding='utf-8') as f:
 with open('punct.txt', mode='r', encoding='utf-8') as f:
     punct = f.read().replace('\n', '')
 
-def csv_to_df(filename='../../checkset-fixed.csv', skip_header=True):
-	print("ok1")
+def csv_to_df(filename='../checkset-fixed.csv', skip_header=False):
 	df = []
 	# with open(filename, encoding = 'utf-8') as csvfile:
 	#     csvreader = csv.reader(csvfile, delimiter=",")
@@ -29,44 +29,60 @@ def csv_to_df(filename='../../checkset-fixed.csv', skip_header=True):
 	#     for row in csvreader:
 	# 	    	df.append([i] + list(map(lambda x: normalize("NFKC", x), row)))
 	# 	    	i += 1
-		    	#though we're really only interested in normalizing the text columns... whatever
-	#df = np.array(df) #aiiieeeeeeeeeee
+	# 	    	#though we're really only interested in normalizing the text columns... whatever
+	# df = np.array(df) #aiiieeeeeeeeeee
 	#0: id | 1: headline | 2: link | 3: text | 4: date | 5: year | 6: category
-	#df = pd.read_csv(filename, dtype='string')
+	if(skip_header):
+		pd_header = None
+	else:
+		pd_header = 0
+	df = pd.read_csv(filename, dtype='unicode', header=pd_header, encoding='utf8')
 	#idk why pandas is reading two rows as NA when they're right there. wtf.
-	with open(filename, encoding='utf-8') as csvfile:
-		myReader = csv.reader(csvfile)
-		df = list(myReader)
-
+	# --> I think it had to do with article length bricking the csv file.
+	# with open(filename, encoding='utf-8') as csvfile:
+	# 	myReader = csv.reader(csvfile)
+	# 	if skip_header:
+	# 		next(myReader)
+	# 	df = list(myReader)
+	# print("Read csv", filename)
 	return df
-	sw_df = []
-	sh_df = []
-	bd_df = []
-	jp_df = []
-	my_pointer = {"SWORD": sw_df, "SHIELD": sh_df, "BADGE": bd_df, "JAPANFOCUS": jp_df}
+	
+	# sw_df = []
+	# sh_df = []
+	# bd_df = []
+	# jp_df = []
+	# my_pointer = {"SWORD": sw_df, "SHIELD": sh_df, "BADGE": bd_df, "JAPANFOCUS": jp_df}
 
-	for i in range(len(df)):
-		print(i)
-		which_cat = df[i][6] #--> "SWORD", "SHIELD", "BADGE", "JAPANFOCUS", or "IFFY" idk ignore that one... thres only two
-		#print(which_cat)
-		if(which_cat in my_pointer.keys()):
-			#print("ok")
-			my_pointer[which_cat].append([df[i][x] for x in [0, 3, 6]]) #potentially datetime is of interest but not rn
-	return np.array(df)
+	# for i in range(len(df)):
+	# 	print(i)
+	# 	which_cat = df[i][6] #--> "SWORD", "SHIELD", "BADGE", "JAPANFOCUS", or "IFFY" idk ignore that one... thres only two
+	# 	#print(which_cat)
+	# 	if(which_cat in my_pointer.keys()):
+	# 		#print("ok")
+	# 		my_pointer[which_cat].append([df[i][x] for x in [0, 3, 6]]) #potentially datetime is of interest but not rn
+	# return np.array(df)
 
 def kiwi_tokenizer(doc:str): #->List[str]
-	doc = normalize("NFKC", doc)
+	try:
+		print("normalizing encoding...")
+		doc = normalize("NFKC", doc)
+	except:
+		print("error, probably missing txt due to bricked csv")
+		return []
+	print("removing punctuation...")
 	tbl = str.maketrans(punct, ' '*len(punct))
 	doc = doc.translate(tbl)
+	print("tokenizing with Kiwi...")
 	kiwi_tokens = k.tokenize(doc, stopwords=k_sw) #--> List of Token objects. We're interested in .form attribute
 	kiwi_words = [t.form for t in kiwi_tokens]
 	clean_tokens = []
 	i=0
+	print("adjusting for 핵 prefix...")
 	while i < len(kiwi_words):
 	    token = kiwi_words[i]
 	    if len(token) < 0:
 	        #idt this would happen
-	        print("h")
+	        print("Something went wrong.")
 	        i += 1
 	        continue
 	    if(kiwi_words[i] == "핵"):
@@ -85,13 +101,14 @@ def kiwi_tokenizer(doc:str): #->List[str]
 	            i += 1
 	            continue
 	        if(i < len(kiwi_words)-1):
-	            token = kiwi_words[i] + kiwi_words[i+1]
-	            i += 1
+	        	print("attached 핵.")
+	        	token = kiwi_words[i] + kiwi_words[i+1]
+	        	i += 1
 	        else:
-	            print("somehow found haek by itself at the end of the document.")
+	            print("somehow found 핵 by itself at the end of the document.")
 	            print(clean_tokens[-1])
 	    if(kiwi_words[i] == "론" and i < len(kiwi_words)-1 and kiwi_words[i+1][0] == "설"):
-	        print("ok")
+	        print("print for this other manual thing")
 	        token = "론설"
 	        kiwi_words[i+1] = kiwi_words[i+1][1:]
 	        i += 1
@@ -99,6 +116,7 @@ def kiwi_tokenizer(doc:str): #->List[str]
 	    i += 1
 
 	#clean_tokens = [word for word in clean_tokens if word not in stopwords]
+	print("Done tokenizing!")
 	return clean_tokens
 
 
@@ -164,17 +182,61 @@ def my_tokenizer(doc:str): #->List[str]
 	clean_tokens = [word for word in clean_tokens if word not in stopwords]
 	return clean_tokens
 
-if __name__ == "__main__":
+def writeCSV(df, fileOut):
+	print("writing csv...")
+	df.to_csv(fileOut, encoding='utf-8-sig', index=False)
+	print("Wrote to", fileOut)
 
-	mydf = np.array(csv_to_df())
+def tokenizeCSV(fileIn='../checkset-fixed.csv', colN=2):
+	mydf = csv_to_df(fileIn)
+	#bankdf = np.array(csv_to_df('../bank_words_cat_only.csv'))
 	numProcesses = mp.cpu_count() #4
 	pool = mp.Pool(processes = numProcesses)
-	test = pool.map(kiwi_tokenizer, mydf[:, 2])
+	test = pool.map(kiwi_tokenizer, mydf.iloc[:, colN])
+	#test = pool.map(kiwi_tokenizer, bankdf[:, 0])
 	pool.close()
 	pool.join()
 
 	joined = [' '.join(i) for i in test]
-	mydf[:, 2] = joined
-	with open('tokenoutkiwi.csv', 'w', encoding='utf-8') as csvfile:
-		mywriter = csv.writer(csvfile)
-		mywriter.writerows(mydf)
+	mydf.iloc[:, colN] = joined
+	#bankdf[:, 0] = joined
+	print("Done!")
+	return(mydf)
+
+def countCatMatches(doc):
+	#given a single corpus
+	#I guess... iter thru words
+	#and count how many times a word of each category appeared in that corpus
+	#...
+	this_doc_word_counts = { 'sword': 0, 'shield': 0, 'badge': 0 }
+	#corpL = doc.split(' ')
+	for bankword in word_catg.keys():
+		if bankword in doc:
+			this_doc_word_counts[word_catg[bankword]] = this_doc_word_counts[word_catg[bankword]]+1
+	return pd.DataFrame([this_doc_word_counts], columns = this_doc_word_counts.keys())
+
+def test():
+	print(word_catg)
+	print("ok")
+	return
+
+if __name__ == "__main__":
+	#df = tokenizeCSV(fileIn='toydata.csv', fileOut='testoutput.csv')
+	mgr = mp.Manager()
+	ns = mgr.Namespace()
+	#AAAAAAAAAIIIIEEEEEEEEEEEEEEEEEEEEEEEE OH MY GOOOODDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
+	bank_tokenized = csv_to_df('../bank_words_tokenized.csv') #dont care abt col 0
+	print("got bank_tokenized")
+	word_catg = dict(itertools.zip_longest(bank_tokenized.iloc[:, 1], bank_tokenized.iloc[:, 2]))
+	#test()
+	print("got word_catg")
+	print("tokenizing corpora.....")
+	#corpora = tokenizeCSV('../../kcna-full-plsbeutf8.csv', colN=3)
+	corpora = tokenizeCSV('toydata.csv', colN=2)
+	numProcesses = mp.cpu_count() #4
+	pool = mp.Pool(processes = numProcesses)
+	test = pool.map(countCatMatches, corpora.iloc[:, 2])
+	pool.close()
+	pool.join()
+	print("Done!")
+	writeCSV(test, 'aiieeeeee.csv')
