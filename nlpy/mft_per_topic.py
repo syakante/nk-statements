@@ -203,7 +203,8 @@ def tokenizeCSV(fileIn='../checkset-fixed.csv', colN=2):
 	print("Done!")
 	return(mydf)
 
-def countCatMatches(doc):
+def countCatMatches(fuck):
+	doc, word_catg = fuck
 	#given a single corpus
 	#I guess... iter thru words
 	#and count how many times a word of each category appeared in that corpus
@@ -233,9 +234,13 @@ if __name__ == "__main__":
 	print("tokenizing corpora.....")
 	#corpora = tokenizeCSV('../../kcna-full-plsbeutf8.csv', colN=3)
 	corpora = tokenizeCSV('toydata.csv', colN=2)
+	#aiiiiiiiiiiiieeeeeeeeeeeeeeeeeeee
+	#https://stackoverflow.com/questions/36794433/python-using-multiprocessing-on-a-pandas-dataframe
+	#don't fuck this up too much. Remember the original purpose here was to just tokenize checkset
+	#not match bank tokens to 1500 article tokens
 	numProcesses = mp.cpu_count() #4
 	pool = mp.Pool(processes = numProcesses)
-	test = pool.map(countCatMatches, corpora.iloc[:, 2])
+	test = pool.map(countCatMatches, [(corpora.iloc[:, 2], word_catg)])
 	pool.close()
 	pool.join()
 	print("Done!")
