@@ -8,30 +8,20 @@ import itertools
 from kiwipiepy import Kiwi
 from kiwipiepy.utils import Stopwords
 import multiprocessing as mp
+from time import time
 
 #o = Okt()
 k = Kiwi()
 k_sw = Stopwords()
 
-with open('stopwords-ko.txt', mode='r', encoding='utf-8') as f:
-    stopwords = set(f.read().split())
+# with open('stopwords-ko.txt', mode='r', encoding='utf-8') as f:
+#     stopwords = set(f.read().split())
 
 with open('punct.txt', mode='r', encoding='utf-8') as f:
     punct = f.read().replace('\n', '')
 
 def csv_to_df(filename='../checkset-fixed.csv', skip_header=False):
 	df = []
-	# with open(filename, encoding = 'utf-8') as csvfile:
-	#     csvreader = csv.reader(csvfile, delimiter=",")
-	#     if skip_header:
-	#     	next(csvreader)
-	#     i = 0
-	#     for row in csvreader:
-	# 	    	df.append([i] + list(map(lambda x: normalize("NFKC", x), row)))
-	# 	    	i += 1
-	# 	    	#though we're really only interested in normalizing the text columns... whatever
-	# df = np.array(df) #aiiieeeeeeeeeee
-	#0: id | 1: headline | 2: link | 3: text | 4: date | 5: year | 6: category
 	if(skip_header):
 		pd_header = None
 	else:
@@ -196,52 +186,19 @@ def tokenizeCSV(fileIn='../checkset-fixed.csv', colN=2):
 	#test = pool.map(kiwi_tokenizer, bankdf[:, 0])
 	pool.close()
 	pool.join()
-
 	joined = [' '.join(i) for i in test]
 	mydf.iloc[:, colN] = joined
 	#bankdf[:, 0] = joined
 	print("Done!")
 	return(mydf)
 
-def countCatMatches(fuck):
-	doc, word_catg = fuck
-	#given a single corpus
-	#I guess... iter thru words
-	#and count how many times a word of each category appeared in that corpus
-	#...
-	this_doc_word_counts = { 'sword': 0, 'shield': 0, 'badge': 0 }
-	#corpL = doc.split(' ')
-	for bankword in word_catg.keys():
-		if bankword in doc:
-			this_doc_word_counts[word_catg[bankword]] = this_doc_word_counts[word_catg[bankword]]+1
-	return pd.DataFrame([this_doc_word_counts], columns = this_doc_word_counts.keys())
-
-def test():
-	print(word_catg)
-	print("ok")
-	return
-
 if __name__ == "__main__":
-	#df = tokenizeCSV(fileIn='toydata.csv', fileOut='testoutput.csv')
-	mgr = mp.Manager()
-	ns = mgr.Namespace()
-	#AAAAAAAAAIIIIEEEEEEEEEEEEEEEEEEEEEEEE OH MY GOOOODDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
-	bank_tokenized = csv_to_df('../bank_words_tokenized.csv') #dont care abt col 0
-	print("got bank_tokenized")
-	word_catg = dict(itertools.zip_longest(bank_tokenized.iloc[:, 1], bank_tokenized.iloc[:, 2]))
-	#test()
-	print("got word_catg")
-	print("tokenizing corpora.....")
+	textCol = 1
+	print("tokenizing corpora...")
 	#corpora = tokenizeCSV('../../kcna-full-plsbeutf8.csv', colN=3)
-	corpora = tokenizeCSV('toydata.csv', colN=2)
-	#aiiiiiiiiiiiieeeeeeeeeeeeeeeeeeee
-	#https://stackoverflow.com/questions/36794433/python-using-multiprocessing-on-a-pandas-dataframe
-	#don't fuck this up too much. Remember the original purpose here was to just tokenize checkset
-	#not match bank tokens to 1500 article tokens
-	numProcesses = mp.cpu_count() #4
-	pool = mp.Pool(processes = numProcesses)
-	test = pool.map(countCatMatches, [(corpora.iloc[:, 2], word_catg)])
-	pool.close()
-	pool.join()
-	print("Done!")
-	writeCSV(test, 'aiieeeeee.csv')
+	start = time()
+	#corpora = tokenizeCSV(fileIn='../../top_articles_txt.csv', colN=textCol)
+	corpora = tokenizeCSV()
+	end = time()
+	print("Done! Took", end-start)
+	writeCSV(corpora, 'tokenoutkiwi.csv')

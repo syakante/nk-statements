@@ -8,19 +8,30 @@ import multiprocessing as mp
 from time import sleep, time
 
 def task(data):
+    global d
     sleep(1)
     try:
-        result = 1/data
+        v = d[data]
+        result = 1/v
         return result
     except:
         print(f"error")
         return None
 
+def init_worker(shared_d):
+    global d
+    d = shared_d
+
+def make_dict(n):
+    global d
+    d = { i: i for i in range(n, -1, -1)}
+
 if __name__ == '__main__':
-    L = [1, 2, 0, 4, 5]
+    make_dict(5)
+    L = [0, 1, 2, 3, 4, 5]
     print("with mp:")
     num_proc = mp.cpu_count()
-    pool = mp.Pool(processes = num_proc)
+    pool = mp.Pool(processes = num_proc, initializer = init_worker, initargs=(d,))
     start = time()
     results = pool.map(task, L)
     pool.close()
