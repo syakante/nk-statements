@@ -28,78 +28,53 @@ def csv_to_df(filename='../checkset-fixed.csv', skip_header=False):
 
 def kiwi_tokenizer(doc:str): #->List[str]
 	try:
-		print("normalizing encoding...")
+		print("normalizing encoding...", end = " ")
 		doc = normalize("NFKC", doc)
 	except:
 		print("error, probably missing txt due to bricked csv")
 		return []
-	print("removing punctuation...")
+	print("removing punctuation...", end = " ")
 	tbl = str.maketrans(punct, ' '*len(punct))
 	doc = doc.translate(tbl)
-	print("tokenizing with Kiwi...")
+	print("tokenizing with Kiwi...", end = " ")
 	kiwi_tokens = k.tokenize(doc, stopwords=k_sw) #--> List of Token objects. We're interested in .form attribute
-	kiwi_words = [t.form for t in kiwi_tokens]
-	clean_tokens = []
-	i=0
-	print("adjusting for 핵 prefix...")
-	while i < len(kiwi_words):
-	    token = kiwi_words[i]
-	    if len(token) < 0:
-	        #idt this would happen
-	        print("Something went wrong.")
-	        i += 1
-	        continue
-	    if(kiwi_words[i] == "핵"):
-	        # if(i < len(o_morphs2)-1):
-	        #     print("next token:", o_morphs2[i+1])
-	        # else:
-	        #     print("(no next token)")
-	        # if(i > 0):
-	        #     print("preceding token:", o_morphs2[i-1])
-	        # else:
-	        #     print("(no previous token)")
-	        #^ though this won't happen because we attach to the following token anyway
-	        if(i > 0 and clean_tokens[-1] == "핵에는"):
-	            print("here")
-	            clean_tokens[-1] = "핵에는 핵으로"
-	            i += 1
-	            continue
-	        if(i < len(kiwi_words)-1):
-	        	print("attached 핵.")
-	        	token = kiwi_words[i] + kiwi_words[i+1]
-	        	i += 1
-	        else:
-	            print("somehow found 핵 by itself at the end of the document.")
-	            print(clean_tokens[-1])
-	    if(kiwi_words[i] == "론" and i < len(kiwi_words)-1 and kiwi_words[i+1][0] == "설"):
-	        print("print for this other manual thing")
-	        token = "론설"
-	        kiwi_words[i+1] = kiwi_words[i+1][1:]
-	        i += 1
-	    clean_tokens.append(token)
-	    i += 1
-
 	#clean_tokens = [word for word in clean_tokens if word not in stopwords]
 	print("Done tokenizing!")
-	return clean_tokens
+	return(' '.join([k.form for k in kiwi_tokens]))
 
 def writeCSV(df, fileOut):
 	print("writing csv...")
 	df.to_csv(fileOut, encoding='utf-8-sig', index=False)
 	print("Wrote to", fileOut)
 
+def initializer():
+	global punct
+	with open('punct.txt', mode='r', encoding='utf-8') as f:
+		punct = f.read().replace('\n', '')
+	print("importing custom words to kiwi...")
+	global k
+	k = Kiwi()
+	myWords = csv_to_df('customWords.csv')
+	for i in range(myWords.shape[0]):
+		print("adding", myWords.iloc[i,0])
+		k.add_user_word(word=myWords.iloc[i,0], tag=myWords.iloc[i,1])
+	global k_sw
+	k_sw = Stopwords()
+	k_sw.remove(('없', 'VA'))
+	k_sw.remove(('우리','NP'))
+
 def tokenizeCSV(fileIn='../checkset-fixed.csv', colN=2):
 	mydf = csv_to_df(fileIn)
 	#bankdf = np.array(csv_to_df('../bank_words_cat_only.csv'))
 	numProcesses = mp.cpu_count() #4
-	pool = mp.Pool(processes = numProcesses)
+	pool = mp.Pool(processes = numProcesses, initializer=initializer, initargs=())
 	test = pool.map(kiwi_tokenizer, mydf.iloc[:, colN])
 	#test = pool.map(kiwi_tokenizer, bankdf[:, 0])
 	pool.close()
 	pool.join()
 
-	joined = [' '.join(i) for i in test]
-	mydf.iloc[:, colN] = joined
+	#joined = [' '.join(i) for i in test]
+	mydf.iloc[:, colN] = test #was joined, but moved .join to kiwi_tokenize step instead
 	#bankdf[:, 0] = joined
 	print("Done!")
 	return(mydf)
@@ -129,14 +104,14 @@ def make_dict(pd_df):
 
 if __name__ == "__main__":
 	textCol = 3
-	bank_tokenized = csv_to_df('../bank_words_tokenized.csv') #dont care abt col 0
+	bank_tokenized = csv_to_df('bank_tokenized_latest.csv') #dont care abt col 0
 	print("got bank_tokenized")
 	make_dict(bank_tokenized)
 	print("got word_catg")
 	print("tokenizing corpora...")
 	start = time()
-	corpora = tokenizeCSV('../../kcna-full-plsbeutf8.csv', colN=textCol)
-	#corpora = tokenizeCSV('toydata.csv', colN=textCol)
+	#corpora = tokenizeCSV('../../kcna-full-plsbeutf8.csv', colN=textCol)
+	corpora = tokenizeCSV('toydata.csv', colN=textCol)
 	end = time()
 	print("Tokenized corpora. Took", end-start)
 	numProcesses = mp.cpu_count() #4
