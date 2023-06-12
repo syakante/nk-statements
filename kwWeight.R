@@ -4,17 +4,17 @@ library(stringi)
 library(readxl)
 library(ggplot2)
 library(ggrepel)
-raw <- read_excel('C://Users//SKim.CSIS.000//Documents//nk-statements//nlpy//fulloutput.xlsx')
+raw <- read_excel(paste(dir,"//nlpy//fulloutput.xlsx", sep=""))
 #extra column from pandas on the left but w/e
 
 #filter out some articles
 #blank ones, too many mentions of (foreign country), not enough uses of 핵
-raw <- raw %>% subset(text != "[]") %>% subset(stri_count(text, regex="일본") < 3) %>% subset(stri_count(text, regex="핵") > 4)
+raw <- raw %>% subset(text != "[]") %>% subset(stri_count(text, regex="일본") < 3) %>% subset(stri_count(text, regex="핵") >= 4)
 raw$Date <- as.Date(raw$Date, format="%Y-%m-%d")
 raw$id <- as.numeric(raw$id)
 
-aLen <- read_csv('C://Users//SKim.CSIS.000//Documents//articleLength.csv') %>% subset(id %in% raw$id)
-raw <- raw %>% merge(aLen, on="id") %>% subset(length > 200)
+#aLen <- read_csv('C://Users//SKim.CSIS.000//Documents//articleLength.csv') %>% subset(id %in% raw$id)
+#raw <- raw %>% merge(aLen, on="id") %>% subset(length > 200)
 
 weights.df <- data.frame(
   term = c(c("우리 생존","대조선 핵선제공격","미국 핵선제공격","방패","우리 핵선제공격","핵위협 가증","핵악몽",
@@ -41,8 +41,14 @@ dict_count <- function(doc, c){
   twos <- subset(dict, weight == 2)$term
   ones <- subset(dict, weight == 1)$term
   tmp <- sum(vapply(X=twos, FUN=function(x){stri_count(doc, regex=x)}, FUN.VALUE=numeric(1)))
-  return(sum(vapply(ones, function(x){stri_count(doc, regex=x)}, numeric(1))) + tmp)
-  
+  return(sum(vapply(ones, function(x){stri_count(doc, regex=x)}, numeric(1))) + 2*tmp)
+}
+
+dict_count_uw <- function(doc, c){
+  #in: str doc, str which catg
+  #out: int of counted weights for that category
+  dict <- subset(weights.df, catg == c)
+  return(sum(vapply(dict$term, function(x){stri_count(doc, regex=x)}, numeric(1))))
 }
 
 catg_v <- c("shield", "sword", "badge")

@@ -6,9 +6,10 @@ library(forcats)
 library(readxl)
 library(stringi)
 
-checkset <- read_excel("C://Users//SKim.CSIS.000//Documents//sampleset.xlsx")
+dir = getwd()
+checkset <- read_excel(paste(dir,"//sampleset.xlsx", sep=""))
 checkset <- checkset[!duplicated(checkset$id),]
-tokenized <- read_excel('C://Users//SKim.CSIS.000//Documents//nk-statements//nlpy//fulloutput.xlsx') %>% subset(id %in% checkset$id)
+tokenized <- read_excel(paste(dir,"//nlpy//fulloutput.xlsx", sep="")) %>% subset(id %in% checkset$id)
 df2 <- merge(checkset, tokenized, by="id") %>% select(id, headline, text, Date, category) %>% filter(Date < "2023-04-01")
 
 catg_words2 <- df2 %>% unnest_tokens(word, text) %>% count(category, word, sort=TRUE)
@@ -48,10 +49,11 @@ df2$category <- as.factor(df2$category)
 data_split <- df2 %>% select(id) %>% initial_split()
 train_data <- training(data_split)
 test_data <- testing(data_split)
+
+sparse_words <- mytidy %>% count(id, word) %>% cast_sparse(id, word, n)
 #for some reason there's an article that gets dropped from mytidy?
 dropped = setdiff(c(train_data$id, test_data$id), as.numeric(rownames(sparse_words)))
 test_data = test_data[!test_data$id == dropped,]
-sparse_words <- mytidy %>% count(id, word) %>% cast_sparse(id, word, n)
 #sparse_words <- cbind(sparse_words, as.numeric(format(df2$Date[!df2$id == dropped], "%Y")))
 myrownames <- as.integer(rownames(sparse_words))
 docs_joined <- tibble(id = myrownames) %>% left_join(df2 %>% select(id, category))
