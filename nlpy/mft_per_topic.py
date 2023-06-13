@@ -151,8 +151,8 @@ def bank():
 
 def main():
 	start = time()
-	textCol = 3
-	filename = '../../15014-15030-raw.xlsx'
+	textCol = 1
+	filename = '../selected.xlsx'
 	
 	### read external file
 	print("File:",filename)
@@ -170,7 +170,7 @@ def main():
 	print("ok2")
 	
 	print("Done with text processing.")
-	raw.to_excel('15014-15030-out.xlsx', index=False)
+	raw.to_excel('../selected-w-headlines.xlsx', index=False)
 	end = time()
 	print("Done! Took", end-start)
 

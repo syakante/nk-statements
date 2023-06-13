@@ -2,10 +2,7 @@ library(dplyr)
 library(tidyverse)
 library(stringi)
 library(readxl)
-library(ggplot2)
-library(ggrepel)
 library(tidytext)
-library(forcats)
 library(rsample)
 library(glmnet)
 library(doMC)
@@ -48,7 +45,6 @@ terms.df <- data.frame(
 )
 #removed "가하", from sword
 #"힘 대결" appeared twice in badge fsr
-catg_v <- c("shield", "sword", "badge")
 
 doc_word_counter <- function(doc, term_vector){
   #in: single doc
@@ -59,9 +55,9 @@ ndocs <- dim(df)[1]
 #get words with 핵 in them and count them
 #how to handle dupes in old terms list..?
 #answer: I decided I don't care.
-haek.terms <- df %>% unnest_tokens(word, text) %>% filter(stri_detect(word, regex="핵")) %>% count(word, sort=T) %>% filter(n > 15) %>% getElement("word")
-terms.v <- c(terms.df$term, haek.terms)
-#best: n=11
+haek.terms <- df %>% unnest_tokens(word, text) %>% filter(stri_detect(word, regex="핵")) %>% count(word, sort=T) %>% filter(n > 10) %>% getElement("word")
+our.bigrams <- df %>% unnest_tokens(bigram, text, token="ngrams", n=2) %>% filter(!is.na(bigram), stri_detect(bigram, regex="^우리\\s")) %>% count(bigram, sort=T) %>% filter(n > 5) %>% getElement("bigram")
+terms.v <- c(terms.df$term, haek.terms, our.bigrams)
 funvalue = length(terms.v)
 funvalue
 word_freq_matrix <- data.frame(matrix(rep(0, ndocs*funvalue), nrow=ndocs, ncol=funvalue))
@@ -89,18 +85,139 @@ data_split <- df %>% filter(!id %in% names(which(docWordCount == 0))) %>% select
 train <- training(data_split) %>% getElement("id")
 test <- testing(data_split) %>% getElement("id")
 
-train.x <- word_freq_matrix[as.character(train),] %>% as.matrix %>% as("dgCMatrix")
+## glmnet with all words
+
+sparse_words <- df %>% select(id, text) %>% unnest_tokens(word, text) %>% group_by(word) %>% filter(n() > 10) %>% ungroup() %>%
+  count(id, word) %>%
+  #filter(id %in% train) %>%
+  cast_sparse(id, word, n)
+
+#train.x <- word_freq_matrix[as.character(train),] %>% as.matrix %>% as("dgCMatrix")
+train.x <- sparse_words[as.character(train),]
 train.y <- df %>% filter(id %in% train) %>% select(id, category) #getElement("category")
-order <- match(train, train.y$id)
+order <- match(rownames(train.x), train.y$id)
 train.y <- train.y[order,] %>% getElement("category")
 
-test.x <- word_freq_matrix[as.character(test),] %>% as.matrix %>% as("dgCMatrix")
+#test.x <- word_freq_matrix[as.character(test),] %>% as.matrix %>% as("dgCMatrix")
+test.x <- sparse_words[as.character(test),]
+#tmp.m <- matrix(rep(0, length(test)*length(setdiff(colnames(train.x), colnames(test.x)))), nrow=length(test), ncol=length(setdiff(colnames(train.x), colnames(test.x))))
+#colnames(tmp.m) <- setdiff(colnames(train.x), colnames(test.x))
+#test.x <- cbind(test.x, tmp.m)
+#test.x <- test.x[, colnames(train.x)]
 test.y <- df %>% filter(id %in% test) %>% select(id, category)
 order <- match(test, test.y$id)
 test.y <- test.y[order,] %>% getElement("category")
-
 
 registerDoMC(cores=8)
 fit = cv.glmnet(x = train.x, y = train.y, family = "multinomial", parallel = TRUE, keep = TRUE)
 predictions <- predict(fit, newx = test.x, type="class", s = fit$lambda.min)
 sum(test.y == as.vector(predictions))/length(test.y)
+#finding that I get like .9 training acc and then .6 test acc!! Aieeeee!!!!!
+
+
+##Trying one-vs-rest instead...
+
+#sword
+data_split <- df %>% filter(!id %in% names(which(docWordCount == 0))) %>% select(id) %>% initial_split()
+train <- training(data_split) %>% getElement("id")
+test <- testing(data_split) %>% getElement("id")
+
+train.x <- sparse_words[as.character(train),]
+train.y <- df %>% filter(id %in% train) %>% select(id, category) #getElement("category")
+order <- match(rownames(train.x), train.y$id)
+train.y <- train.y[order,] %>% mutate(category = ifelse(category == "sword", "sword", "else")) %>% getElement("category")
+
+test.x <- sparse_words[as.character(test),]
+test.y <- df %>% filter(id %in% test) %>% select(id, category) %>% mutate(category = ifelse(category == "sword", "sword", "else"))
+order <- match(test, test.y$id)
+test.y <- test.y[order,] %>% getElement("category")
+
+sword.fit <- cv.glmnet(x = train.x, y = train.y, family = "binomial", parallel = TRUE, keep = TRUE)
+
+predictions <- predict(sword.fit, newx = test.x, type="class", s = fit$lambda.min)
+sum(test.y == as.vector(predictions))/length(test.y)
+#something like .84 train acc
+#test acc is 2/3, only slightly better than null model :(
+
+#shield
+train.x <- sparse_words[as.character(train),]
+train.y <- df %>% filter(id %in% train) %>% select(id, category) #getElement("category")
+order <- match(rownames(train.x), train.y$id)
+train.y <- train.y[order,] %>% mutate(category = ifelse(category == "shield", "shield", "else")) %>% getElement("category")
+
+test.x <- sparse_words[as.character(test),]
+test.y <- df %>% filter(id %in% test) %>% select(id, category) %>% mutate(category = ifelse(category == "shield", "shield", "else"))
+order <- match(test, test.y$id)
+test.y <- test.y[order,] %>% getElement("category")
+
+shield.fit <- cv.glmnet(x = train.x, y = train.y, family = "binomial", parallel = TRUE, keep = TRUE)
+predictions <- predict(shield.fit, newx = test.x, type="class", s = fit$lambda.min)
+sum(test.y == as.vector(predictions))/length(test.y)
+#.93 train acc
+#got .74, not bad!! But could just be "lucky".
+#null model is like .57
+
+#badge
+train.x <- sparse_words[as.character(train),]
+train.y <- df %>% filter(id %in% train) %>% select(id, category) #getElement("category")
+order <- match(rownames(train.x), train.y$id)
+train.y <- train.y[order,] %>% mutate(category = ifelse(category == "badge", "badge", "else")) %>% getElement("category")
+
+test.x <- sparse_words[as.character(test),]
+test.y <- df %>% filter(id %in% test) %>% select(id, category) %>% mutate(category = ifelse(category == "badge", "badge", "else"))
+order <- match(test, test.y$id)
+test.y <- test.y[order,] %>% getElement("category")
+
+badge.fit <- cv.glmnet(x = train.x, y = train.y, family = "binomial", parallel = TRUE, keep = TRUE)
+predictions <- predict(badge.fit, newx = test.x, type="class", s = fit$lambda.min)
+sum(test.y == as.vector(predictions))/length(test.y)
+#.90 train acc
+#.71 but null model is about .7 so not that good. aiee.
+
+## one-vs-rest with selected keywords/bigrams. (I have no expectation to be any good given how all words models did but hmm ehh)
+#sword
+train.x <- word_freq_matrix[as.character(train),] %>% as.matrix %>% as("dgCMatrix")
+train.y <- df %>% filter(id %in% train) %>% select(id, category) #getElement("category")
+order <- match(rownames(train.x), train.y$id)
+train.y <- train.y[order,] %>% mutate(category = ifelse(category == "sword", "sword", "else")) %>% getElement("category")
+
+test.x <- word_freq_matrix[as.character(test),] %>% as.matrix %>% as("dgCMatrix")
+test.y <- df %>% filter(id %in% test) %>% select(id, category) %>% mutate(category = ifelse(category == "sword", "sword", "else"))
+order <- match(test, test.y$id)
+test.y <- test.y[order,] %>% getElement("category")
+
+sword.fit <- cv.glmnet(x = train.x, y = train.y, family = "binomial", parallel = TRUE, keep = TRUE)
+
+predictions <- predict(sword.fit, newx = test.x, type="class", s = fit$lambda.min)
+sum(test.y == as.vector(predictions))/length(test.y)
+#test was 2/3 again...
+#train was .81
+
+#shield
+train.y <- df %>% filter(id %in% train) %>% select(id, category) #getElement("category")
+order <- match(rownames(train.x), train.y$id)
+train.y <- train.y[order,] %>% mutate(category = ifelse(category == "shield", "shield", "else")) %>% getElement("category")
+
+test.y <- df %>% filter(id %in% test) %>% select(id, category) %>% mutate(category = ifelse(category == "shield", "shield", "else"))
+order <- match(test, test.y$id)
+test.y <- test.y[order,] %>% getElement("category")
+
+shield.fit <- cv.glmnet(x = train.x, y = train.y, family = "binomial", parallel = TRUE, keep = TRUE)
+predictions <- predict(shield.fit, newx = test.x, type="class", s = fit$lambda.min)
+sum(test.y == as.vector(predictions))/length(test.y)
+#.79 train acc. aiee
+#.69 test acc. aieee
+
+#badge
+train.y <- df %>% filter(id %in% train) %>% select(id, category) #getElement("category")
+order <- match(rownames(train.x), train.y$id)
+train.y <- train.y[order,] %>% mutate(category = ifelse(category == "badge", "badge", "else")) %>% getElement("category")
+
+test.y <- df %>% filter(id %in% test) %>% select(id, category) %>% mutate(category = ifelse(category == "badge", "badge", "else"))
+order <- match(test, test.y$id)
+test.y <- test.y[order,] %>% getElement("category")
+
+badge.fit <- cv.glmnet(x = train.x, y = train.y, family = "binomial", parallel = TRUE, keep = TRUE)
+predictions <- predict(badge.fit, newx = test.x, type="class", s = fit$lambda.min)
+sum(test.y == as.vector(predictions))/length(test.y)
+#.72 test acc. Unsurprisingly, adding "our" bigrams benefited badge the most; the other two pretty much didn't change (from keyword-only models)
