@@ -18,7 +18,7 @@ for(i in required_packages) {
 }
 
 #NAVIGATE TO PAGE  ------
-url <- paste0("https://kcnawatch.org/?s=%22핵%22&source=190036&start=", key_date)
+url <- paste0("https://kcnawatch.org/?s=%22핵%22&source=190036&start=", key_date, "&sort=recent")
 driver <- rsDriver(browser = "firefox", 
                    chromever = NULL)
 rd <- driver[["client"]]
@@ -30,6 +30,14 @@ for (i in 1:10){ # CHANGE SECOND NUMBER DEPENDING ON TIME SINCE LAST UPDATE
   loadmorebutton$clickElement()
   Sys.sleep(2)
 }
+# loadmorebutton <- rd$findElement(using = 'css selector', "#more_results")
+# while(!is.na(loadmorebutton)){
+#   print("ok...")
+#   loadmorebutton$clickElement()
+#   loadmorebutton <- rd$findElement(using = 'css selector', "#more_results")
+#   Sys.sleep(2)
+# }
+
 
 #GET INFO AND STUFF  ------
 page_source<-rd$getPageSource()
@@ -42,7 +50,7 @@ rd$close()
 
 #GET TEXT NOW -------
 newdata <- data.frame(text = NA)[numeric(0), ]
-for(i in 1:31){
+for(i in 1:dim(df)[1]){
   url2 = df$link[i]
   content = read_html(url2)
   text <- content %>% html_nodes("div.article-content") %>% html_text()
@@ -64,10 +72,10 @@ newdata$link <- gsub("\r?\n|\r", " ", newdata$link)
 key_date <- paste0(substring(key_date, 7), substring(key_date, 3, 6), substring(key_date, 1, 2))
 
 # MERGE SETS remove previous entries
-data <- read.csv("kcna-핵.csv")
-data <- data %>%
-  select(headline, link, text, Date) %>%
-  filter(!Date == key_date) %>%
-  rbind(newdata)
+# data <- read.csv("kcna-핵.csv")
+# data <- data %>%
+#   select(headline, link, text, Date) %>%
+#   filter(!Date == key_date) %>%
+#   rbind(newdata)
 
-write.csv(data, "kcna-핵.csv")
+readr::write_excel_csv(newdata, "test.csv")
