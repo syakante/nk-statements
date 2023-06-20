@@ -48,6 +48,7 @@ haek.terms <- df %>% unnest_tokens(word, text) %>% filter(stri_detect(word, rege
 haek.terms = haek.terms[ !haek.terms == ""]
 our.bigrams <- df %>% unnest_tokens(bigram, text, token="ngrams", n=2) %>% filter(!is.na(bigram), stri_detect(bigram, regex="^우리\\s")) %>% count(bigram, sort=T) %>% filter(n > 5) %>% getElement("bigram")
 terms.v <- c(terms.v, haek.terms, our.bigrams)
+#TODO: remove duplicates
 funvalue = length(terms.v)
 word_freq_matrix <- data.frame(matrix(rep(0, ndocs*funvalue), nrow=ndocs, ncol=funvalue))
 word_freq_matrix <- as.data.frame(t(vapply(df$text, function(x){doc_word_counter(doc=x, term_vector=terms.v)}, numeric(funvalue), USE.NAMES = FALSE)))
@@ -164,9 +165,13 @@ bd.model %>% fit(
 #...this didn't do as well as I expected. only .6 val acc?!
 #it got worse?! .86, .58?!
 
-save_model_hdf5(sw.model, "swordmodel")
-save_model_hdf5(sh.model, "shieldmodel")
-save_model_hdf5(bd.model, "badgemodel")
+# save_model_hdf5(sw.model, "swordmodel")
+# save_model_hdf5(sh.model, "shieldmodel")
+# save_model_hdf5(bd.model, "badgemodel")
+
+sw.model <- load_model_hdf5("swordmodel.h5")
+sh.model <- load_model_hdf5("shieldmodel.h5")
+bd.model <- load_model_hdf5("badgemodel.h5")
 
 ## trying on the rest of the unseen data
 #TODO: currently the selection from raw is by mentions of haek but this isn't a good filter bc not all haek is useful...

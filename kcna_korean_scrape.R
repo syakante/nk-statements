@@ -13,8 +13,13 @@ for(i in required_packages) {
   }
 }
 
+# binman::rm_platform("phantomjs")
+# wdman::selenium(retcommand = TRUE)
+#um... due to permissions idt this works on work computer, only personal
+
 #NAVIGATE TO PAGE  ------
-url <- "https://kcnawatch.org/?s=%22핵%22&source=190036&start=01-01-1997&end=14-03-2023" # update date
+#url <- "https://kcnawatch.org/?s=%22핵%22&source=190036&start=01-01-1997&end=14-03-2023" # update date
+url <- "https://kcnawatch.org/?s=%22핵%22&source=190036&start=01-03-2022&end=20-06-2023" # update date
 driver <- rsDriver(browser = "firefox", 
                    chromever = NULL)
 rd <- driver[["client"]]
@@ -62,4 +67,4 @@ data$text <- str_trim(gsub("\r?\n|\r", " ", data$text), "left")
 data$headline <- str_trim(gsub("\r?\n|\r|·", " ", data$headline), "left")
 data$link <- gsub("\r?\n|\r", " ", data$link)
 
-write.csv(data, "kcna-핵.csv")
+write.csv(data, "202203-2023-06.csv")

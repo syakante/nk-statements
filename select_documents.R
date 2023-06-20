@@ -37,5 +37,30 @@ keep <- subset(raw, id %in% hasKeyword)
 
 data.table::fwrite(keep$id, "myarticleids.csv")
 
-# library(ggplot2)
-# keep %>% mutate(Date = format(Date, "%Y")) %>% getElement("Date") %>% as.numeric %>% hist
+keep <- read_csv("myarticleids.csv", col_names = F)
+colnames(keep) <- c("id")
+
+library(ggplot2)
+raw %>% right_join(., keep, by="id") %>% mutate(Date = as.numeric(format(Date, "%Y"))) %>% tibble %>% group_by(Date) %>% count() %>% 
+  ggplot(aes(x = Date, y = n)) + geom_bar(stat = "identity") + scale_x_continuous(breaks = 1998:2023) + labs(y = "Count", x = "Year") + theme(axis.text.x = element_text(angle = 45, vjust = 0.9, hjust=1))
+
+raw %>% mutate(Date = as.numeric(format(Date, "%Y"))) %>% tibble %>% group_by(Date) %>% count() %>% 
+  ggplot(aes(x = Date, y = n)) + geom_bar(stat = "identity") + scale_x_continuous(breaks = 1998:2023) + labs(y = "Count", x = "Year") + theme(axis.text.x = element_text(angle = 45, vjust = 0.9, hjust=1))
+
+checkset %>% mutate(date = as.numeric(format(date, "%Y"))) %>% tibble %>% group_by(date, category) %>% count() %>% 
+  ggplot(aes(x = date, y = n, fill=category)) + geom_bar(stat = "identity") + scale_x_continuous(breaks = 1998:2023) + labs(y = "Count", x = "Year") + theme(axis.text.x = element_text(angle = 45, vjust = 0.9, hjust=1))
+
+###
+
+sampleset = read_excel("sampleset.xlsx")
+selected = read_excel("selected-w-headlines.xlsx") %>% select("id", "Date")
+# um... in current sampleset, there's four articles (1868, 15019, 15021, and 15022) that aren't in selected i.e. don't meet >1 keyword criteria
+# but.... idc.....
+
+set.seed(1)
+
+#stratified sampling by year
+yearSample <- selected %>% subset(!(id %in% sampleset$id)) %>% mutate(Date = format(as.Date(Date), "%Y")) %>% group_by(Date) %>% sample_n(3) %>% getElement("id")
+data.table::fwrite(tibble(id = yearSample), "strat-year-sample.csv")
+
+#I was going to stratified sample by category but thats not possible rn lol
