@@ -22,20 +22,8 @@ order <- match(checkset$id, tokenized$id)
 tokenized <- tokenized[order,]
 df <- merge(checkset, tokenized, by="id")
 
-terms.v = c("우리 생존","대조선 핵선제공격","미국 핵선제공격","방패","우리 핵선제공격","핵위협 가증","핵악몽",
-             "미국 핵전쟁 도발","미국 핵전쟁 도발 책동","외부 핵위협","평화 수호","정당방위","반핵","평화적핵",
-             "핵선제공격 대상","핵전쟁 위협","침략 정책","북침 핵전쟁 연습","핵전쟁 발발","핵위협 공갈","방위력",
-             "불장난","평화 환경","자위적","핵전쟁 책동","생존권","평화 보장","위협 당하","핵재난","전쟁광",
-             "핵반격","전쟁 밖에","핵에는 핵으로","민족 생명","핵전투","핵타격 무장","핵공격 태세",
-             "핵선제 타격 권","섬멸 포문","전멸","종국 파멸","핵공격 능력","핵무력 강화","경고","전투태세",
-             "핵보검","전투준비태세","조미 핵대결 전","전쟁 상태","막을수 없","자멸","교전 관계","보복 타격",
-             "주체 무기","위력한 보검","장검","정밀 핵타격 수단",
-             "세계 앞","핵보유국 전렬","핵보유국 지위","핵강국 전렬","당당 핵보유국","최첨단핵","세기 기적",
-             "국가 핵무력 완성","힘 대결","동방 핵강국","자랑 스럽","세상 없","신뢰성","세계 핵","조미 대결",
-             "당황","힘찬 진군","공화국 핵무력","정의 핵억제력","기술 우세","대결 시대","전략 지위",
-             "놀라","우리 식","초강도","더 위력한","무진 막강")
-#removed "가하", from sword
-#"힘 대결" appeared twice in badge fsr
+terms.v = read.table("features2.txt", sep="\n") %>% getElement("V1")
+#removed "가하" from sword
 
 doc_word_counter <- function(doc, term_vector){
   #in: single doc
@@ -46,14 +34,26 @@ ndocs <- dim(df)[1]
 #get words with 핵 in them and count them
 haek.terms <- df %>% unnest_tokens(word, text) %>% filter(stri_detect(word, regex="핵")) %>% count(word, sort=T) %>% filter(n > 10) %>% getElement("word")
 haek.terms = haek.terms[ !haek.terms == ""]
-our.bigrams <- df %>% unnest_tokens(bigram, text, token="ngrams", n=2) %>% filter(!is.na(bigram), stri_detect(bigram, regex="^우리\\s")) %>% count(bigram, sort=T) %>% filter(n > 5) %>% getElement("bigram")
-terms.v <- c(terms.v, haek.terms, our.bigrams)
-#TODO: remove duplicates
+our.bigrams <- df %>% unnest_tokens(bigram, text, token="ngrams", n=2) %>% 
+  filter(!is.na(bigram), stri_detect(bigram, regex="^우리\\s") | stri_detect(bigram, regex='^(?=.*(?:대조선|공화국|민족))(?!.*조선중앙통신).*')) %>% 
+  count(bigram, sort=T) %>% 
+  filter(n > 5) %>% 
+  getElement("bigram")
+
+#manually read/write/reread these
+#data.table::fwrite(list(our.bigrams), "tmpbigramfeats.txt")
+our.bigrams <- read.table("tmpbigramfeats.txt", sep="\n") %>% getElement("V1")
+#um.. what I want to do is treat "대조선", "공화국", "민족" as the same, like "공화국 [term]", "민족 [term]", and "대조선 [term]" will all count toward the same feature
+#maybe make the feature a regex for doc_word_counter..?
+our.bigrams.regex <- stri_replace(our.bigrams, "(?:우리|대조선|공화국|민족)", regex="(?:우리|대조선|공화국|민족)") %>% unique
+
+terms.v <- unique(c(terms.v, haek.terms, our.bigrams.regex))
+
 funvalue = length(terms.v)
-word_freq_matrix <- data.frame(matrix(rep(0, ndocs*funvalue), nrow=ndocs, ncol=funvalue))
 word_freq_matrix <- as.data.frame(t(vapply(df$text, function(x){doc_word_counter(doc=x, term_vector=terms.v)}, numeric(funvalue), USE.NAMES = FALSE)))
 word_freq_matrix <- word_freq_matrix %>% as.matrix
-colnames(word_freq_matrix) <- terms.v
+term.names <- stri_replace(terms.v, "our", fixed="(?:우리|대조선|공화국|민족)")
+colnames(word_freq_matrix) <- term.names
 rownames(word_freq_matrix) <- df$id
 
 #text analysis with headlines
@@ -61,7 +61,7 @@ rownames(word_freq_matrix) <- df$id
 h.terms.v <- c("미국","조선","남조선","군사","김정은","없","외무성","시험","도발","우리","자위적","전쟁","국제","나라","대결",
                "민주조선","전략","평화","핵전쟁","강화","규탄","보도","비서","연습","인사","조선반도","조치","지도","총",
                "핵무기","단죄","문제","비난","유엔","지지","핵무력","행위","회의","훈련","경고","권리","나가","대회","무모",
-               "발사","방지","버리","병","북침","요구","위험","정당","정책","조국","진로","책임","타격","통일","행동","강조",
+               "발사","방지","버리","북침","요구","위험","정당","정책","조국","진로","책임","타격","통일","행동","강조",
                "건설","검토","공동","공화국","괴뢰","국방위","기초","긴장","길","당","대조선","대화","못하","무기","민족","반",
                "비핵","상보","선군","성공","시비","실천","아시아","연구원","연설","옹호","외무상","위협","인민","조약","책동",
                "평론가","합동","핵군축","핵억제력")
