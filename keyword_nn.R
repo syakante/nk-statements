@@ -9,6 +9,9 @@ library(doMC)
 library(keras)
 library(ggplot2)
 
+#TODO: something with date. separate models for certain eras esp post 2018 which has so few articles
+#May receive keyword updates
+
 set.seed(0)
 
 dir = getwd()

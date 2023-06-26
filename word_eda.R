@@ -43,7 +43,7 @@ feature.ngrams <-terms.v[stri_count(terms.v, regex="\\s") >= 3]
 #bigrams without keyword stuff for now
 
 bigrams <- raw %>% unnest_tokens(bigram, text, token = "ngrams", n = 2) %>% filter(!is.na(bigram) & !stri_detect(bigram, fixed="우리")) %>% group_by(Date) %>% count(bigram, sort=T)
-bigrams %>% filter(stri_detect(bigram, regex="핵")) %>% head(20)
+bigrams %>% filter(stri_detect(bigram, regex="핵보유국"))
 
 unigrams.keywords <- raw %>% unnest_tokens(word, text) %>% filter(word %in% feature.unigrams) %>% count(word, sort=T)
 bigrams.keywords <- raw %>% unnest_tokens(bigram, text, token = "ngrams", n = 2) %>% filter(!is.na(bigram) & bigram %in% feature.bigrams) %>% count(bigram, sort=T)
