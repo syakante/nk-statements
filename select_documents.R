@@ -7,43 +7,38 @@ library(doMC)
 
 registerDoMC(cores=8)
 
-terms.v <- read.table("features2.txt", sep="\n") %>% getElement("V1")
-
 #feat2.v <- read_excel("new-features-tokenized.xlsx") %>% getElement("term")
 #terms.v <- unique(c(terms.v, feat2.v))
 #data.table::fwrite(list(terms.v), "features2.txt")
+#terms.v <- read.table("features2.txt", sep="\n") %>% getElement("V1")
 
-doc_word_counter <- function(doc, term_vector){
-  #in: single doc
-  #out: vector of length unique(dict$terms) that counts which word appeared how many times
-  return(vapply(term_vector, function(x){stri_count(doc, regex=x)}, numeric(1)))
-}
+#previously used feature list to select documents, which are all selected by having mention of haek somewhere
+#but presence of haek doesn't necessiate document being about nuclear
+#neither does presense of some of these keywords, which can be very general
+#so perhaps update document selection keyword criteria
+#to having (haek prefix word, e.g. nuclear weapons, nuclear...)
+#and maybe like some indicator of the DPRK referring to itself
+
+regex.words <- read.table("features2.txt", sep="\n") %>% unnest_tokens(word, V1) %>% filter(stri_detect(word, regex="핵")) %>% getElement("word") %>% unique
+regex.words <- regex.words[!regex.words == "핵"]
+#our.words <- c("우리", "조선") #I think this should be enough. They refer to DPRK as "our republic" so "our" should cover it
+my.regex <- paste("^(?=.*(?:", paste(regex.words, sep="", collapse="|"), "))(?=.*(?:우리|조선)).*$", sep="", collapse="")
 
 dir = getwd()
-raw <- read_excel(paste(dir,"//nlpy//fulloutput.xlsx", sep=""))
+raw <- read_excel(paste(dir,"//nlpy//fulloutput-headline.xlsx", sep=""))
 
-#raw$Date = as.Date(raw$Date)
-funvalue = length(terms.v)
-word_freq_matrix <- as.data.frame(t(vapply(raw$text, function(x){doc_word_counter(doc=x, term_vector=terms.v)}, numeric(funvalue), USE.NAMES = FALSE)))
-docKeywordCount <- apply(word_freq_matrix, 1, sum)
-hasKeyword <- raw$id[docKeywordCount > 0]
-keep <- subset(raw, id %in% hasKeyword)
+selected <- raw %>% filter(stri_detect(text, regex=my.regex))
 
-
-### adding recent docs
-newDocs <- read_excel("march-to-june-tokenized.xlsx")
-newDocs <- newDocs[which(newDocs$link %in% setdiff(newDocs$link, keep$link)),]
-word_freq_matrix2 <- as.data.frame(t(vapply(newDocs$text, function(x){doc_word_counter(doc=x, term_vector=terms.v)}, numeric(funvalue), USE.NAMES = FALSE)))
-docKeywordCount2 <- apply(word_freq_matrix2, 1, sum)
-keep2 <- newDocs[docKeywordCount2 > 0,]
-lastID = max(raw$id)
-keep2$id = (lastID+1):(lastID+dim(keep2)[1])
-
-keep <- keep %>% add_row(keep2)
+# #raw$Date = as.Date(raw$Date)
+# funvalue = length(terms.v)
+# word_freq_matrix <- as.data.frame(t(vapply(raw$text, function(x){doc_word_counter(doc=x, term_vector=terms.v)}, numeric(funvalue), USE.NAMES = FALSE)))
+# docKeywordCount <- apply(word_freq_matrix, 1, sum)
+# hasKeyword <- raw$id[docKeywordCount > 0]
+# keep <- subset(raw, id %in% hasKeyword)
 
 #write
 #im too lazy to install xlsx package or whatever so uh...
-write_excel_csv(keep, "selected.csv")
+write_excel_csv(selected, "selected-w-headline.csv")
 
 #read
 #keep <- read_csv("myarticleids.csv", col_names = F)

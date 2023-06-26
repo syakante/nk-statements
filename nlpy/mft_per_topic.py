@@ -186,4 +186,4 @@ def main(filename, textCol, outfile, headlineCol=-1, headlineFlag=False):
 	print("Done! Took", end-start)
 
 if __name__ == "__main__":
-	main(filename='../selected.xlsx', textCol=1, outfile='../selected-w-headline.xlsx')
+	main(filename='../nlpy/fulloutput.xlsx', textCol=1, outfile='../nlpy/fulloutput-headline.xlsx')
