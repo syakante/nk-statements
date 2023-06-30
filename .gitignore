@@ -1,3 +1,5 @@
 kcna*.csv*
 .Rhistory
 /tmpstuff
+/nlpy/fasttext_files/fasttextko.vec
+/nlpy/fasttext_files/*.bin

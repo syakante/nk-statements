@@ -5,7 +5,7 @@ library(readxl)
 library(tidytext)
 library(doMC)
 
-registerDoMC(cores=8)
+#registerDoMC(cores=8)
 
 #feat2.v <- read_excel("new-features-tokenized.xlsx") %>% getElement("term")
 #terms.v <- unique(c(terms.v, feat2.v))
@@ -22,7 +22,9 @@ registerDoMC(cores=8)
 regex.words <- read.table("features2.txt", sep="\n") %>% unnest_tokens(word, V1) %>% filter(stri_detect(word, regex="핵")) %>% getElement("word") %>% unique
 regex.words <- regex.words[!regex.words == "핵"]
 #our.words <- c("우리", "조선") #I think this should be enough. They refer to DPRK as "our republic" so "our" should cover it
-my.regex <- paste("^(?=.*(?:", paste(regex.words, sep="", collapse="|"), "))(?=.*(?:우리|조선)).*$", sep="", collapse="")
+#updated: new regex is (?<!남)조선(?!중앙통신)|우리
+#because we don't care about articles that talk only about SK, and every article has 조선중앙통신 in it.
+my.regex <- paste("^(?=.*(?:", paste(regex.words, sep="", collapse="|"), "))(?=.*(?:(?<!남)조선(?!중앙통신)|우리)).*$", sep="", collapse="")
 
 dir = getwd()
 raw <- read_excel(paste(dir,"//nlpy//fulloutput-headline.xlsx", sep=""))
@@ -38,7 +40,7 @@ selected <- raw %>% filter(stri_detect(text, regex=my.regex))
 
 #write
 #im too lazy to install xlsx package or whatever so uh...
-write_excel_csv(selected, "selected-w-headline.csv")
+write_excel_csv(selected, "selected-w-headline2.csv")
 
 #read
 #keep <- read_csv("myarticleids.csv", col_names = F)

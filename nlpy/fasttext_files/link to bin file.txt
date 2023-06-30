@@ -1,0 +1,2 @@
+https://dl.fbaipublicfiles.com/fasttext/vectors-crawl/cc.ko.300.bin.gz
+https://dl.fbaipublicfiles.com/fasttext/vectors-crawl/cc.ko.300.vec.gz
