@@ -7,7 +7,7 @@ import numpy as np
 #fasttext.util.download_model('ko', if_exists='ignore')
 #ft = fasttext.load_model('cc.ko.300.bin')
 
-#vector_length = 100
+# vector_length = 100
 
 # # original BIN model loading
 # f = fasttext.load_model('cc.ko.300.bin')
@@ -36,25 +36,25 @@ import numpy as np
 #             pass
 # print("Done writing vec.")
 #idk why I did this and it still thinks dimension 100? 
-# start = time()
-# ft_model = fasttext.train_supervised('shielddata.txt', pretrainedVectors='fasttextko.vec') 
-# end = time()
-#print("Took", end-start, "to train_supervised.")
+start = time()
+ft_model = fasttext.train_supervised('shielddata.txt', dim=300, pretrainedVectors='cc.ko.300.vec') 
+end = time()
+print("Took", end-start, "to train_supervised.")
 #print("Saving...")
 #ft_model.save_model("testmodel.bin")
 
-ft_model = fasttext.load_model("testmodel.bin")
+# ft_model = fasttext.load_model("testmodel.bin")
 
-vector_length = ft_model.dim #100 i think
-#word_index = tokenizer.word_index #?
-word_index = ft_model.get_words()
-vocab_size = len(word_index) #+ 1 ..?
-embedding_matrix = np.random.random((vocab_size, vector_length))
-for i in range(vocab_size):
-	word = word_index[i]
-	try:
-		embedding_vector = ft_model.get_word_vector(word)
-	except:
-		print(word, "not found")
-	if embedding_vector is not None:
-		embedding_matrix[i, :] = embedding_vector
+# vector_length = ft_model.dim #100 i think
+# #word_index = tokenizer.word_index #?
+# word_index = ft_model.get_words()
+# vocab_size = len(word_index) #+ 1 ..?
+# embedding_matrix = np.random.random((vocab_size, vector_length))
+# for i in range(vocab_size):
+# 	word = word_index[i]
+# 	try:
+# 		embedding_vector = ft_model.get_word_vector(word)
+# 	except:
+# 		print(word, "not found")
+# 	if embedding_vector is not None:
+# 		embedding_matrix[i, :] = embedding_vector

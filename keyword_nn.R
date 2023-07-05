@@ -15,10 +15,11 @@ library(ggplot2)
 set.seed(0)
 
 dir = getwd()
-checkset <- read_excel(paste(dir,"//sampleset.xlsx", sep=""))
+checkset <- read_excel(paste(dir,"//new-sampleset.xlsx", sep=""))
+checkset$category = tolower(checkset$category)
 checkset <- checkset[!duplicated(checkset$id),]
 checkset$category <- as.factor(checkset$category)
-tokenized <- read_excel(paste(dir,"//nlpy//fulloutput.xlsx", sep="")) %>% subset(id %in% checkset$id) %>% select(id, text)
+tokenized <- read_excel(paste(dir,"//nlpy//fulloutput-headline.xlsx", sep="")) %>% subset(id %in% checkset$id) %>% select(id, text, headline)
 tokenized$id <- as.numeric(tokenized$id)
 
 order <- match(checkset$id, tokenized$id)
@@ -73,7 +74,7 @@ h.terms.v <- c("미국","조선","남조선","군사","김정은","없","외무�
   stri_replace("(?:우리|.*(?<!남)조선|공화국|민족)", regex="(?:우리|.*(?<!남)조선|공화국|민족)") %>% unique
 
 funvalue = length(h.terms.v)
-head_freq_matrix <- as.data.frame(t(vapply(df$`headline-tokenized`, function(x){doc_word_counter(doc=x, term_vector=h.terms.v)}, numeric(funvalue), USE.NAMES = FALSE)))
+head_freq_matrix <- as.data.frame(t(vapply(df$headline, function(x){doc_word_counter(doc=x, term_vector=h.terms.v)}, numeric(funvalue), USE.NAMES = FALSE)))
 colnames(head_freq_matrix) <- stri_replace(h.terms.v, "our", fixed="(?:우리|.*(?<!남)조선|공화국|민족)") %>% sapply(function(x){paste(x, "h", sep="_")}, USE.NAMES=F) %>% as.vector
 rownames(head_freq_matrix) <- df$id
 
@@ -131,10 +132,15 @@ sw.model %>% fit(
 #features2.txt:
 #.91 acc, .80 val acc
 
+#July 3 new sampleset:
+#.9462, .8511 val acc
+
 #confusion matrix:
 sw.train.pred <- predict(sw.model, M)
-table("Predicted" = as.vector(ifelse(sw.train.pred >= 0.48, 1, 0)), "Actual" = ifelse(df$category == "sword", 1, 0))
+table("Predicted" = as.vector(ifelse(sw.train.pred >= 0.5, 1, 0)), "Actual" = ifelse(df$category == "sword", 1, 0))
 #tendency toward false negative, so maybe lower threshold..?
+
+#July 3: ONLY ONE in actual-1-predicted-1????? What the fuck happened?
 
 #shield
 sh.model <- keras_model_sequential()
@@ -159,6 +165,9 @@ sh.model %>% fit(
 
 #feature2.txt:
 #.93 acc, .64 val acc?!
+
+#July 3
+#.9731 acc, .53 val acc aieee wtfff lmao
 
 #confusion matrix:
 sh.train.pred <- predict(sh.model, M)
@@ -194,6 +203,10 @@ bd.model %>% fit(
 bd.train.pred <- predict(bd.model, M)
 table("Predicted" = as.vector(ifelse(bd.train.pred >= 0.44, 1, 0)), "Actual" = ifelse(df$category == "badge", 1, 0))
 #strong tendency toward false negative
+
+#July 3
+#Bizzarely pretty good for badge but then again there's a whole 196 non-badge articles so
+#:|
 
 # save_model_hdf5(sw.model, "swordmodel2.h5")
 # save_model_hdf5(sh.model, "shieldmodel2.h5")

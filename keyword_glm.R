@@ -18,33 +18,35 @@ set.seed(0)
 # raw$id <- as.numeric(raw$id)
 
 dir = getwd()
-checkset <- read_excel(paste(dir,"//sampleset.xlsx", sep=""))
+checkset <- read_excel(paste(dir,"//new-sampleset.xlsx", sep=""))
 checkset <- checkset[!duplicated(checkset$id),]
 checkset$category <- as.factor(checkset$category)
-tokenized <- read_excel(paste(dir,"//nlpy//fulloutput.xlsx", sep="")) %>% subset(id %in% checkset$id) %>% select(id, text)
+tokenized <- read_excel(paste(dir,"//nlpy//fulloutput-headline.xlsx", sep="")) %>% subset(id %in% checkset$id) %>% select(id, text)
 tokenized$id <- as.numeric(tokenized$id)
 
 order <- match(checkset$id, tokenized$id)
 tokenized <- tokenized[order,]
 df <- merge(checkset, tokenized, by="id")
 
-terms.df <- data.frame(
-  term = c(c("우리 생존","대조선 핵선제공격","미국 핵선제공격","방패","우리 핵선제공격","핵위협 가증","핵악몽",
-             "미국 핵전쟁 도발","미국 핵전쟁 도발 책동","외부 핵위협","평화 수호","정당방위","반핵","평화적핵",
-             "핵선제공격 대상","핵전쟁 위협","침략 정책","북침 핵전쟁 연습","핵전쟁 발발","핵위협 공갈","방위력",
-             "불장난","평화 환경","자위적","핵전쟁 책동","생존권","평화 보장","위협 당하","핵재난","전쟁광"),
-           c("핵반격","전쟁 밖에","핵에는 핵으로","민족 생명","핵전투","핵타격 무장","핵공격 태세",
-             "핵선제 타격 권","섬멸 포문","전멸","종국 파멸","핵공격 능력","핵무력 강화","경고","전투태세",
-             "핵보검","전투준비태세","조미 핵대결 전","전쟁 상태","막을수 없","자멸","교전 관계","보복 타격",
-             "주체 무기","위력한 보검","장검","정밀 핵타격 수단"),
-           c("세계 앞","핵보유국 전렬","핵보유국 지위","핵강국 전렬","당당 핵보유국","최첨단핵","세기 기적",
-             "국가 핵무력 완성","힘 대결","동방 핵강국","자랑 스럽","세상 없","신뢰성","세계 핵","조미 대결",
-             "당황","힘찬 진군","공화국 핵무력","정의 핵억제력","기술 우세","대결 시대","전략 지위",
-             "놀라","우리 식","초강도","더 위력한","무진 막강")),
-  catg = c(rep("shield", 30), rep("sword", 27), rep("badge", 27))
-)
+# terms.df <- data.frame(
+#   term = c(c("우리 생존","대조선 핵선제공격","미국 핵선제공격","방패","우리 핵선제공격","핵위협 가증","핵악몽",
+#              "미국 핵전쟁 도발","미국 핵전쟁 도발 책동","외부 핵위협","평화 수호","정당방위","반핵","평화적핵",
+#              "핵선제공격 대상","핵전쟁 위협","침략 정책","북침 핵전쟁 연습","핵전쟁 발발","핵위협 공갈","방위력",
+#              "불장난","평화 환경","자위적","핵전쟁 책동","생존권","평화 보장","위협 당하","핵재난","전쟁광"),
+#            c("핵반격","전쟁 밖에","핵에는 핵으로","민족 생명","핵전투","핵타격 무장","핵공격 태세",
+#              "핵선제 타격 권","섬멸 포문","전멸","종국 파멸","핵공격 능력","핵무력 강화","경고","전투태세",
+#              "핵보검","전투준비태세","조미 핵대결 전","전쟁 상태","막을수 없","자멸","교전 관계","보복 타격",
+#              "주체 무기","위력한 보검","장검","정밀 핵타격 수단"),
+#            c("세계 앞","핵보유국 전렬","핵보유국 지위","핵강국 전렬","당당 핵보유국","최첨단핵","세기 기적",
+#              "국가 핵무력 완성","힘 대결","동방 핵강국","자랑 스럽","세상 없","신뢰성","세계 핵","조미 대결",
+#              "당황","힘찬 진군","공화국 핵무력","정의 핵억제력","기술 우세","대결 시대","전략 지위",
+#              "놀라","우리 식","초강도","더 위력한","무진 막강")),
+#   catg = c(rep("shield", 30), rep("sword", 27), rep("badge", 27))
+# )
 #removed "가하", from sword
 #"힘 대결" appeared twice in badge fsr
+
+terms.v <- read.table("features2.txt", sep="\n") %>% getElement("V1")
 
 doc_word_counter <- function(doc, term_vector){
   #in: single doc
@@ -81,9 +83,11 @@ df <- df[-which(docWordCount==0),]
 # totalWordFreq <- data.frame(term = terms.df$term, count = apply(word_freq_matrix[,2:86], 2, sum), row.names=NULL)
 
 #mytidy <- df %>% select(id, text) %>% unnest_tokens(word, text) %>% group_by(word) %>% filter(n() > 10) %>% ungroup()
-data_split <- df %>% filter(!id %in% names(which(docWordCount == 0))) %>% select(id) %>% initial_split()
+# data_split <- df %>% filter(!id %in% names(which(docWordCount == 0))) %>% select(id) %>% initial_split()
+data_split <- df %>% select(id) %>% initial_split()
 train <- training(data_split) %>% getElement("id")
 test <- testing(data_split) %>% getElement("id")
+
 
 ## glmnet with all words
 
@@ -188,10 +192,13 @@ test.y <- test.y[order,] %>% getElement("category")
 
 sword.fit <- cv.glmnet(x = train.x, y = train.y, family = "binomial", parallel = TRUE, keep = TRUE)
 
-predictions <- predict(sword.fit, newx = test.x, type="class", s = fit$lambda.min)
+predictions <- predict(sword.fit, newx = test.x, type="class", s = sword.fit$lambda.min)
 sum(test.y == as.vector(predictions))/length(test.y)
-#test was 2/3 again...
-#train was .81
+#July 3:
+#used latest features2.txt and latest training data from Ellen and Seihyeon
+#got test of .88. Inch resting.
+#But the predictions is just null model lol!
+#also I was incorrectly using fit$lambda instead of sword.fit so
 
 #shield
 train.y <- df %>% filter(id %in% train) %>% select(id, category) #getElement("category")
@@ -203,10 +210,9 @@ order <- match(test, test.y$id)
 test.y <- test.y[order,] %>% getElement("category")
 
 shield.fit <- cv.glmnet(x = train.x, y = train.y, family = "binomial", parallel = TRUE, keep = TRUE)
-predictions <- predict(shield.fit, newx = test.x, type="class", s = fit$lambda.min)
+predictions <- predict(shield.fit, newx = test.x, type="class", s = shield.fit$lambda.min)
 sum(test.y == as.vector(predictions))/length(test.y)
-#.79 train acc. aiee
-#.69 test acc. aieee
+#.69 test error which was... the same as the last time I used glmnet. Huh.
 
 #badge
 train.y <- df %>% filter(id %in% train) %>% select(id, category) #getElement("category")
@@ -218,6 +224,9 @@ order <- match(test, test.y$id)
 test.y <- test.y[order,] %>% getElement("category")
 
 badge.fit <- cv.glmnet(x = train.x, y = train.y, family = "binomial", parallel = TRUE, keep = TRUE)
-predictions <- predict(badge.fit, newx = test.x, type="class", s = fit$lambda.min)
+predictions <- predict(badge.fit, newx = test.x, type="class", s = badge.fit$lambda.min)
 sum(test.y == as.vector(predictions))/length(test.y)
-#.72 test acc. Unsurprisingly, adding "our" bigrams benefited badge the most; the other two pretty much didn't change (from keyword-only models)
+#.71 test acc. Abt the same as last time. Huh...
+#oh bc it's null modeling it. Wow.
+
+#confusion matrix
