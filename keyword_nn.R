@@ -17,7 +17,7 @@ set.seed(0)
 dir = getwd()
 checkset <- read_excel(paste(dir,"//new-sampleset.xlsx", sep=""))
 checkset$category = tolower(checkset$category)
-checkset <- checkset[!duplicated(checkset$id),]
+checkset <- checkset %>% distinct
 checkset$category <- as.factor(checkset$category)
 tokenized <- read_excel(paste(dir,"//nlpy//fulloutput-headline.xlsx", sep="")) %>% subset(id %in% checkset$id) %>% select(id, text, headline)
 tokenized$id <- as.numeric(tokenized$id)

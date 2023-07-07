@@ -1,0 +1,20 @@
+parameters:
+vectors of dim 300
+15 epochs
+minCount=2 (discard words with fewer than 2 occurrences)
+bucket=2000 (basically, max vocab size)
+
+shield:
+number of words: 1463
+trained on 600 sentences, got 100% accuracy
+tested on 150 sentences, got 0.7466 accuracy
+
+sword:
+number of words: 1487
+trained on 600 sentences, got .9966 
+tested on 150 sentences, got .7733 accuracy
+
+badge:
+number of words: 1480
+trained on 600 sentences, got 100%
+tested on 150 sentences, got .833

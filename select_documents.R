@@ -71,3 +71,14 @@ yearSample <- selected %>% subset(!(id %in% sampleset$id)) %>% mutate(Date = for
 data.table::fwrite(tibble(id = yearSample), "strat-year-sample.csv")
 
 #I was going to stratified sample by category but thats not possible rn lol
+
+
+####
+#selecting docs for Lime
+sampsent.df <- read_excel("sentences-tokenized.xlsx")
+tmp <- read_excel("new-sampleset.xlsx") %>% select(id, date)
+sampsent.df <- merge(sampsent.df, tmp, on="id")
+sampsent.df %>% subset(category == "shield") %>% mutate(date = as.numeric(format(as.Date(date), "%Y"))) %>%
+  subset(date < 2012) %>% write_excel_csv("shield-1998-2011.csv")
+sampsent.df %>% subset(category == "shield") %>% mutate(date = as.numeric(format(as.Date(date), "%Y"))) %>%
+  subset(date >= 2012) %>% write_excel_csv("shield-2012-2023.csv")

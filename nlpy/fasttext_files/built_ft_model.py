@@ -1,4 +1,3 @@
-
 from time import time
 import fasttext
 import pandas as pd
@@ -39,52 +38,99 @@ from unicodedata import normalize
 # print("Done writing vec.")
 #^^^ i have no idea what this is actually
 
-label = "sword"
+label = "badge"
 
-trainfile = label+"_train.txt"
-testfile = label+"_test.txt"
+def train_pretrained(label:str):
+	trainfile = label+"_train.txt"
+	testfile = label+"_test.txt"
 
-start = time()
-ft_model = fasttext.train_supervised(trainfile, dim=300, pretrainedVectors='cc.ko.300.vec', epoch=15, minCount=2, bucket=20000,thread=8)
-#took out wordNgrams param for now cuz uh... gonna use for lstm later I guess 
-end = time()
-print("Took", end-start, "to train_supervised.")
-#takes like btwn 200-300 secs?
+	start = time()
+	ft_model = fasttext.train_supervised(trainfile, dim=300, pretrainedVectors='cc.ko.300.vec', epoch=15, minCount=2, bucket=20000,thread=8)
+	#took out wordNgrams param for now cuz uh... gonna use for lstm later I guess 
+	end = time()
+	print("Took", end-start, "to train_supervised.")
+	#takes like btwn 200-300 secs?
 
-print("on train data:")
-print(ft_model.test(trainfile))
-print("on test data:")
-print(ft_model.test(testfile))
+	print("on train data:")
+	print(ft_model.test(trainfile))
+	print("on test data:")
+	print(ft_model.test(testfile))
 
-print("Saving...")
-binfile = "ft_"+label+".bin"
-ft_model.save_model(binfile)
+	print("Saving...")
+	binfile = "ft_"+label+".bin"
+	ft_model.save_model(binfile)
+
+def train_scratch(label:str):
+	trainfile = label+"_train.txt"
+	testfile = label+"_test.txt"
+
+	start = time()
+	ft_model = fasttext.train_supervised(trainfile, dim=300, epoch=15, minCount=2, bucket=2000, thread=8)
+	#took out wordNgrams param for now cuz uh... gonna use for lstm later I guess 
+	end = time()
+	print("Took", end-start, "to train_supervised.")
+	#takes like btwn 200-300 secs?
+
+	print("on train data:")
+	print(ft_model.test(trainfile))
+	print("on test data:")
+	print(ft_model.test(testfile))
+
+	print("Saving...")
+	binfile = "ft_"+label+"scratch.bin"
+	ft_model.save_model(binfile)
+
+
 #in the future, try out quantize
 #got 0.6933333333333334 on test data (cringe!)
+#and any hyperparameter changes don't seem to affect it. ...
+#for sword got .8266 (inch resting)
+#and badge got .78 (inch resting...)
 
-# ft_model = fasttext.load_model("testmodel.bin")
-# print("Loaded model.")
+def excel_to_df(filename, skip_header=False):
+	df = []
+	if(skip_header):
+		pd_header = None
+	else:
+		pd_header = 0
+	df = pd.read_excel(filename, dtype='unicode', header=pd_header)
+	return df
 
 ####
 #ok just trying with first round of ft only
 #for the record, ft base is a shallow nn
 #no lstm nn etc yet...
-# predictions = []
-# with open("unseen-sentences-tokenized.txt", "r", encoding="utf-8") as f:
-	# for line in f:
-	# 	try:
-	# 		s = normalize("NFKC", line.rstrip())
-	# 		tmp = ft_model.predict(s)
-	# 		label = tmp[0][0][9:]
-	# 		prob = tmp[1][0]
-	# 		predictions.append([label, prob])
-	# 	except:
-	# 		print("Something went wrong.")
+def predict_one(s:str, model):
+	try:
+		s = normalize("NFKC", s.strip())
+		tmp = model.predict(s)
+		#print("yahoo!")
+		label = tmp[0][0][9:]
+		prob = tmp[1][0]
+		return([label, prob])
+	except:
+		print("Something went wrong.")
+		return(["NA", 0])
 
-# print("Done predicting.")
-# print("Writing...")
-# df = pd.DataFrame(predictions)
-# df.to_csv("unseen-predictions.csv", sep=",")
-# print("Done!")
+def predict(label:str):
+	infile = "ft_"+label+".bin"
+	ft_model = fasttext.load_model(infile)
+	unseen = excel_to_df("../../unseen-sentences-tokenized.xlsx")
+	predictions = [predict_one(sent, ft_model) for sent in unseen['sentence']]
+	print("Done predicting.")
+	print("Writing...")
+	df = unseen.join(pd.DataFrame(predictions))
+	df.drop('sentence', axis=1)
+	df.to_excel("unseen-predictions-"+label+".xlsx")
+	print("Done!")
 
 ####
+
+#train_scratch("shield")
+#train_pretrained("shield")
+#train_pretrained("sword")
+#train_pretrained("badge")
+
+predict("shield")
+#predict("sword")
+#predict("badge")

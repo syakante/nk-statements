@@ -186,4 +186,5 @@ def main(filename, textCol, outfile, headlineCol=-1, headlineFlag=False):
 	print("Done! Took", end-start)
 
 if __name__ == "__main__":
-	main(filename='../nlpy/fulloutput.xlsx', textCol=1, outfile='../nlpy/fulloutput-headline.xlsx')
+	#main(filename='../selected-sent-raw.xlsx', textCol=1, outfile='../unseen-sentences-tokenized.xlsx')
+	print("ok")

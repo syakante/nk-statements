@@ -39,4 +39,6 @@ def main(label:str):
 	print("Wrote", label, "txt.")
 	print("Done!")
 
+main("shield")
 main("sword")
+main("badge")
