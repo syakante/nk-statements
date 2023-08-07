@@ -2,7 +2,7 @@ library(dplyr)
 library(tidyverse)
 library(stringi)
 library(readxl)
-library(tidytext)
+#library(tidytext)
 library(ggplot2)
 
 set.seed(0)
@@ -47,3 +47,8 @@ bigrams %>% filter(stri_detect(bigram, regex="핵보유국"))
 
 unigrams.keywords <- raw %>% unnest_tokens(word, text) %>% filter(word %in% feature.unigrams) %>% count(word, sort=T)
 bigrams.keywords <- raw %>% unnest_tokens(bigram, text, token = "ngrams", n = 2) %>% filter(!is.na(bigram) & bigram %in% feature.bigrams) %>% count(bigram, sort=T)
+
+
+tmp <- read_excel("sentences-tokenized.xlsx")
+tmp2 <- read_excel("new-sampleset.xlsx")
+tmp2$category = tolower(tmp2$category)

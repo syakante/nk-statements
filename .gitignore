@@ -1,4 +1,5 @@
 kcna*.csv*
+~$*.xlsx
 *.png
 .Rhistory
 /tmpstuff

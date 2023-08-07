@@ -144,7 +144,6 @@ with.uncatg.bw <- all.df %>% mutate(Date = as.numeric(format(as.Date(Date),"%Y")
                     labels = legend.v) +
   scale_pattern_manual(name = "Category",
                        breaks = c("uncategorized", "badge","sword", "shield"),
-                       values=c("uncategorized"="magick", "badge"="none", "sword" = "magick", "shield" = "none"),
                        labels = legend.v) +
   scale_pattern_type_manual(name = "Category",
                             breaks = c("uncategorized", "badge","sword", "shield"),
