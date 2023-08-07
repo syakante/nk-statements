@@ -11,10 +11,6 @@ from time import time
 
 
 #UNBELIEVABLY BRICKED. AUGHHHH
-#First I ran into memory issues because after 2GB or something mp hangs
-#so I tried to fix by making Kiwi globally accessible but that's not possible because it's not a pickle-able object
-#then tried to reduce memory usage by reading the xlsx separately each time but now it's not even running in parallel
-#and... lots of other stuff I don't even know anymore. BASICALLY IT DOESN'T EVEN FUCKING WORK ANYMORE
 
 def csv_to_df(filename, skip_header=False):
 	df = []
