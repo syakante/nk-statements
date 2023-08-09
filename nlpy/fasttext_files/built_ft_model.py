@@ -3,7 +3,9 @@ import fasttext
 import pandas as pd
 import numpy as np
 from unicodedata import normalize
-#import fasttext.util
+import argparse
+
+import fasttext.util
 
 #fasttext.util.download_model('ko', if_exists='ignore')
 #ft = fasttext.load_model('cc.ko.300.bin')
@@ -38,12 +40,13 @@ from unicodedata import normalize
 # print("Done writing vec.")
 #^^^ i have no idea what this is actually
 
-label = "badge"
+#label = "badge"
 
 def train_pretrained(label:str):
 	trainfile = label+"_train.txt"
 	testfile = label+"_test.txt"
-
+	print("(Assuming cc.ko.300.vec already exists)")
+	#fasttext.util.download_model('ko', if_exists='ignore')
 	start = time()
 	ft_model = fasttext.train_supervised(trainfile, dim=300, pretrainedVectors='cc.ko.300.vec', epoch=15, minCount=2, bucket=20000,thread=8)
 	#took out wordNgrams param for now cuz uh... gonna use for lstm later I guess 
@@ -61,6 +64,7 @@ def train_pretrained(label:str):
 	ft_model.save_model(binfile)
 
 def train_scratch(label:str):
+	#given the limited data, this model performs too poorly to be considered, tbh.
 	trainfile = label+"_train.txt"
 	testfile = label+"_test.txt"
 
@@ -124,6 +128,33 @@ def predict(label:str):
 	df.to_excel("unseen-predictions-"+label+".xlsx")
 	print("Done!")
 
+
+if __name__ == "__main__":
+	parser = argparse.ArgumentParser(description = "Train or predict with the specified model (sword, shield, or badge).")
+	parser.add_argument("--label", "-l", type=str, required = True, help="The label to use for training or prediction (sword, shield, badge).")
+	
+	subparsers = parser.add_subparsers(title="subcommands", dest="command")
+	
+	train_parser = subparsers.add_parser("train", help="Train the model with either pretrained vectors (cc.ko.300.vec) or from scratch.")
+	train_parser.add_argument("--train_mode", "-m", type=str, choices = ["scratch", "pretrained"], required = True, help="Training mode: 'scratch' or 'pretrained'")
+
+	predict_parser = subparsers.add_parser("predict", help = "Predict sentence classes with a trained model (sword, shield, badge).")
+
+	args = parser.parse_args()
+
+	if args.command == "train":
+		if(args.train_mode == "scratch"):
+			train_scratch(args.label)
+		elif(args.train_mode == "pretrained"):
+			train_pretrained(args.label)
+		else:
+			parser.print_help()
+	elif args.command == "predict":
+		predict(args.label)
+	else:
+		parser.print_help()
+		print("hint: --label goes first, then train/predict")
+
 ####
 
 #train_scratch("shield")
@@ -131,6 +162,6 @@ def predict(label:str):
 #train_pretrained("sword")
 #train_pretrained("badge")
 
-predict("shield")
+#predict("shield")
 #predict("sword")
 #predict("badge")
