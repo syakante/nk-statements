@@ -1,6 +1,7 @@
 import pandas as pd
 from unicodedata import normalize
 from sklearn.model_selection import train_test_split
+import argparse
 
 def excel_to_df(filename, skip_header=False):
 	df = []
@@ -22,8 +23,8 @@ def write_df_txt(df, filename:str):
 			f.write(line)
 	print("wrote", filename)
 
-def main(label:str):
-	mydf = excel_to_df("../../sentences-tokenized.xlsx")
+def main(infile:str, label:str):
+	mydf = excel_to_df(infile)
 	print("Read excel.")
 	mydf['category'] = [label if x == label else "not"+label for x in mydf['category']]
 	print("Mutated category.")
@@ -39,6 +40,9 @@ def main(label:str):
 	print("Wrote", label, "txt.")
 	print("Done!")
 
-main("shield")
-main("sword")
-main("badge")
+if __name__ == "__main__":
+	parser = argparse.ArgumentParser(description = "Create the train and test data files necessary for building a fasttext model. Creates .xlsx and .txt files for train/test of one label, so 4 files.")
+	parser.add_argument("--input", "-i", type=str, required = True, help="Input Excel file containing.")
+	parser.add_argument("--label", "-l", type=str, required = True, help="Label i.e. badge, shield, or sword.")
+	args = parser.parse_args()
+	main(infile=args.input, label=args.label)

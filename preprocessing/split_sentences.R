@@ -1,7 +1,19 @@
-library(dplyr)
-library(tidyverse)
-library(stringi)
-library(readxl)
+# package download -------
+required_packages <- c("dplyr", "tidyverse", "stringi", "readxl")
+for(i in required_packages) {
+  if(!require(i, character.only = T)) {
+    #  if package is not existing, install then load the package
+    install.packages(i, dependencies = T, repos = "http://cran.us.r-project.org")
+    require(i, character.only = T)
+  }
+}
+
+### vv modify these accordingly vv
+setwd("..")
+dir = getwd()
+input_file <- paste(dir,r("new-sampleset.xlsx"), sep="")
+all_docs_file <- r("C:\Users\me\Downloads\kcna-full-plsbeutf8.xlsx") #<-- put directory of wherever all data is here
+output_file <- paste(dir,r("/sentences.csv"), sep="")
 
 sample.df <- read_excel("new-sampleset.xlsx") %>% mutate(category = str_trim(tolower(category)))
 sentences.df <- read_excel("C:\\Users\\me\\Downloads\\sampleset_236statements.xlsx") %>% select(id, Evidence) %>% merge(., sample.df[c("id", "category")], by="id") %>% subset(category != "drop") %>% distinct

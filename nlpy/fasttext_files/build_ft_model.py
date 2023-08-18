@@ -116,10 +116,10 @@ def predict_one(s:str, model):
 		print("Something went wrong.")
 		return(["NA", 0])
 
-def predict(label:str):
+def predict(label:str, infile:str):
 	infile = "ft_"+label+".bin"
 	ft_model = fasttext.load_model(infile)
-	unseen = excel_to_df("../../unseen-sentences-tokenized.xlsx")
+	unseen = excel_to_df(infile)
 	predictions = [predict_one(sent, ft_model) for sent in unseen['sentence']]
 	print("Done predicting.")
 	print("Writing...")
@@ -139,6 +139,7 @@ if __name__ == "__main__":
 	train_parser.add_argument("--train_mode", "-m", type=str, choices = ["scratch", "pretrained"], required = True, help="Training mode: 'scratch' or 'pretrained'")
 
 	predict_parser = subparsers.add_parser("predict", help = "Predict sentence classes with a trained model (sword, shield, badge).")
+	predict_parser.add_argument("--input", "-i", type=str, required = True, help="Input xlsx file containing docs to predict on. (Currently, the name of the column containing docs must be 'sentence'.)")
 
 	args = parser.parse_args()
 
@@ -150,7 +151,7 @@ if __name__ == "__main__":
 		else:
 			parser.print_help()
 	elif args.command == "predict":
-		predict(args.label)
+		predict(args.label, args.input)
 	else:
 		parser.print_help()
 		print("hint: --label goes first, then train/predict")

@@ -5,6 +5,8 @@
 # if port is already in use ... sudo lsof -nPi :yourPortNumber /// sudo kill -9 yourPIDnumber
 
 key_date <- "13-03-2023"
+existing_file <- "kcna-핵.csv"
+
 #data <- data[-c(14985:15026),]
 # package download -------
 required_packages <- c("rvest", "RSelenium", "tidyverse", "stringr", "dplyr")
@@ -25,7 +27,10 @@ rd <- driver[["client"]]
 rd$navigate(url)
 
 loadmorebutton <- rd$findElement(using = 'css selector', "#more_results")
-for (i in 1:10){ # CHANGE SECOND NUMBER DEPENDING ON TIME SINCE LAST UPDATE
+# this for loop clicks the "Load more" button n times
+# it doesn't save the newly loaded articles, just loads the webpage so that the hyperlinks to older articles are available
+# so if you want to go very far back you would have to click it a lot
+for (i in 1:10){ 
   print(i)
   loadmorebutton$clickElement()
   Sys.sleep(2)
@@ -72,10 +77,10 @@ newdata$link <- gsub("\r?\n|\r", " ", newdata$link)
 key_date <- paste0(substring(key_date, 7), substring(key_date, 3, 6), substring(key_date, 1, 2))
 
 # MERGE SETS remove previous entries
-# data <- read.csv("kcna-핵.csv")
-# data <- data %>%
-#   select(headline, link, text, Date) %>%
-#   filter(!Date == key_date) %>%
-#   rbind(newdata)
+data <- read.csv(existing_file)
+data <- data %>%
+  select(headline, link, text, Date) %>%
+  filter(!Date == key_date) %>%
+  rbind(newdata)
 
 readr::write_excel_csv(newdata, "test.csv")

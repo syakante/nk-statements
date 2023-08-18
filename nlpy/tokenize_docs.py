@@ -1,14 +1,10 @@
-#from collections import Counter
 from unicodedata import normalize
-#import csv
-#import numpy as np
 import pandas as pd
-#import itertools
 from kiwipiepy import Kiwi
 from kiwipiepy.utils import Stopwords
 import multiprocessing as mp
 from time import time
-
+import argparse
 
 #UNBELIEVABLY BRICKED. AUGHHHH
 
@@ -182,5 +178,9 @@ def main(filename, textCol, outfile, headlineCol=-1, headlineFlag=False):
 	print("Done! Took", end-start)
 
 if __name__ == "__main__":
-	#main(filename='../selected-sent-raw.xlsx', textCol=1, outfile='../unseen-sentences-tokenized.xlsx')
-	print("ok")
+	parser = argparse.ArgumentParser(description = "Tokenize the text docs in an excel file.")
+	parser.add_argument("--input", "-i", type=str, required = True, help="Input Excel file.")
+	parser.add_argument("--output", "-o", type=str, required = True, help="Output Excel file.")
+	parser.add_argument("--text", "-t", type=int, required = True, help="Column number containing string docs you wish to tokenize.")
+	args = parser.parse_args()
+	main(filename=args.input, textCol=args.text, outfile=args.output)
