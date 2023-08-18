@@ -44,6 +44,8 @@ Example:
 
 `python nlpy/tokenize_docs.py -i sampleset.xlsx -o sampleset-tokenized.xlsx -t 2`
 
+Note that column indexing starts from 0.
+
 3. `preprocessing/select_documents.R`
 
 Input: `xlsx` Output: `csv`
