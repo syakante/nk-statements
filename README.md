@@ -29,45 +29,75 @@ More documentation (by Junah) can be found on [this Sharepoint Word document.](h
 
 ## Processing text for use in a model
 1. `preprocessing/split_sentneces.R`
+
 Input: xlsx
+
 Output: csv
+
 2. `nlpy/tokenize_docs.py`
+
 Input: xlsx
+
 Output: xlsx
+
 Run in command line like so:
+
 `python nlpy/tokenize_docs.py -i input_file -o output_file -t text_column_number`
+
 Example:
+
 `python nlpy/tokenize_docs.py -i sampleset.xlsx -o sampleset-tokenized.xlsx -t 2`
+
 3. preprocessing/select_documents.R
+
 Input: xlsx
+
 Output: csv
 
 To convert from csv to xlsx, open the file in Excel and Save As an xlsx file.
 
 ## Building a model
 1. nlpy/fasttext_files/make_train_test.py
+
 Input: xlsx
+
 Output: xlsx, txt
+
 Run in command line:
+
 `python nlpy/fasttext_file/make_train_test.py -i input_file -l label`
+
 Example:
+
 `python nlpy/fasttext_file/make_train_test.py -i sampleset-tokenized.xlsx -l badge`
-2. nlpy/fasttext_files/build_ft_model.py
+
+2. `nlpy/fasttext_files/build_ft_model.py`
+
 Input: txt
+
 Output: bin
+
 Run in command line:
+
 `python nlpy/fasttext_file/build_ft_model.py -l label train -t train_mode`
+
 Example:
+
 `python nlpy/fasttext_file/build_ft_model.py -l badge train -t pretrained`
 
-
 ## Predict on unseen data
-1. build_ft_model.py
+1. `build_ft_model.py`
+
 Input: txt
+
 Output: xlsx
+
 Run in command line:
+
 `python nlpy/fasttext_file/build_ft_model.py -l label predict -i input_file`
+
 Example:
+
 `python nlpy/fasttext_file/build_ft_model.py -l badge predict -i unseen_sentences_tokenized.xlsx`
 
 ## Potential questions
