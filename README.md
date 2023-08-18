@@ -28,17 +28,13 @@ If you want to add new data to a preexisting CSV of articles, use `kcna_scrape_u
 More documentation (by Junah) can be found on [this Sharepoint Word document.](https://csis365.sharepoint.com/:w:/s/KoreaChairDrive/EZiUUkKA9ThMso8LHVyT8NEBwvtkIETba23wUQEIJiwlzQ?e=RNImbB)
 
 ## Processing text for use in a model
-1. `preprocessing/split_sentneces.R`
+1. `preprocessing/split_sentences.R`
 
-Input: xlsx
-
-Output: csv
+Input: `xlsx` Output: `csv`
 
 2. `nlpy/tokenize_docs.py`
 
-Input: xlsx
-
-Output: xlsx
+Input: `xlsx` Output: `xlsx`
 
 Run in command line like so:
 
@@ -48,20 +44,16 @@ Example:
 
 `python nlpy/tokenize_docs.py -i sampleset.xlsx -o sampleset-tokenized.xlsx -t 2`
 
-3. preprocessing/select_documents.R
+3. `preprocessing/select_documents.R`
 
-Input: xlsx
-
-Output: csv
+Input: `xlsx` Output: `csv`
 
 To convert from csv to xlsx, open the file in Excel and Save As an xlsx file.
 
 ## Building a model
-1. nlpy/fasttext_files/make_train_test.py
+1. `nlpy/fasttext_files/make_train_test.py`
 
-Input: xlsx
-
-Output: xlsx, txt
+Input: `xlsx` Output: `xlsx`, `txt`
 
 Run in command line:
 
@@ -73,9 +65,7 @@ Example:
 
 2. `nlpy/fasttext_files/build_ft_model.py`
 
-Input: txt
-
-Output: bin
+Input: `txt` Output: `bin`
 
 Run in command line:
 
@@ -88,9 +78,7 @@ Example:
 ## Predict on unseen data
 1. `build_ft_model.py`
 
-Input: txt
-
-Output: xlsx
+Input: `txt` Output: `xlsx`
 
 Run in command line:
 
