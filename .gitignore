@@ -1,6 +1,7 @@
 kcna*.csv*
 ~$*.xlsx
 *.png
+post_fasttext.R
 .Rhistory
 /tmpstuff
 /nlpy/fasttext_files/*.bin
